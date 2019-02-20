@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-Hans">
+<head><meta name="generator" content="Hexo 3.8.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css">
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css">
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/avatar.gif?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/avatar.gif?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/avatar.gif?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/avatar.gif?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="java,Spring Boot,Redis,">
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="在 spring boot 项目中使用了 redis，在此对 RedisTemplate 的使用做个记录，另外在腾讯云上安装了 redis 作为缓存服务器进行了测试。 RedisTemplate 的使用首先，redis 提供了 RedisTemplate&amp;lt;Object,Object&amp;gt; 和 StringRedisTemplate 两个默认实现，其中 StringRedisTemplate">
+<meta name="keywords" content="java,Spring Boot,Redis">
+<meta property="og:type" content="article">
+<meta property="og:title" content="自定义RedisTemplate初探">
+<meta property="og:url" content="http://yoursite.com/2018/07/26/自定义RedisTemplate初探/index.html">
+<meta property="og:site_name" content="马天">
+<meta property="og:description" content="在 spring boot 项目中使用了 redis，在此对 RedisTemplate 的使用做个记录，另外在腾讯云上安装了 redis 作为缓存服务器进行了测试。 RedisTemplate 的使用首先，redis 提供了 RedisTemplate&amp;lt;Object,Object&amp;gt; 和 StringRedisTemplate 两个默认实现，其中 StringRedisTemplate">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:updated_time" content="2019-02-17T07:12:48.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="自定义RedisTemplate初探">
+<meta name="twitter:description" content="在 spring boot 项目中使用了 redis，在此对 RedisTemplate 的使用做个记录，另外在腾讯云上安装了 redis 作为缓存服务器进行了测试。 RedisTemplate 的使用首先，redis 提供了 RedisTemplate&amp;lt;Object,Object&amp;gt; 和 StringRedisTemplate 两个默认实现，其中 StringRedisTemplate">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"always","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2018/07/26/自定义RedisTemplate初探/">
+
+
+
+
+
+  <title>自定义RedisTemplate初探 | 马天</title>
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">马天</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br>
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br>
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br>
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br>
+            
+            关于
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2018/07/26/自定义RedisTemplate初探/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="马天">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="马天">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">自定义RedisTemplate初探</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-07-26T09:02:05+08:00">
+                2018-07-26
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Redis/" itemprop="url" rel="index">
+                    <span itemprop="name">Redis</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>在 spring boot 项目中使用了 redis，在此对 RedisTemplate 的使用做个记录，另外在腾讯云上安装了 redis 作为缓存服务器进行了测试。</p>
+<h2 id="RedisTemplate-的使用"><a href="#RedisTemplate-的使用" class="headerlink" title="RedisTemplate 的使用"></a>RedisTemplate 的使用</h2><p>首先，redis 提供了 RedisTemplate&lt;Object,Object&gt; 和 StringRedisTemplate 两个默认实现，其中 StringRedisTemplate 继承自 RedisTemplate。 RedisTemplate&lt;Object,Object&gt; 使用序列化的方式存储 key 和 value，StringRedisTemplate 则是一个 key 和 value 都是 String 的 RedisTemplate&lt;String,String&gt;。</p>
+<p>对以上两个类的使用不再叙述。看一下以下错误的解决情况，并对应源码简单分析：</p>
+ <a id="more"></a>
+<h3 id="There-is-more-than-one-beans-‘RedisTemplate’-type"><a href="#There-is-more-than-one-beans-‘RedisTemplate’-type" class="headerlink" title="There is more than one beans ‘RedisTemplate’ type"></a>There is more than one beans ‘RedisTemplate’ type</h3><p>在尝试直接使用以下代码注入 RedisTemplate，会有如上报错，</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Autowired</span></span><br><span class="line"><span class="keyword">private</span> RedisTemplate mRedisTemplate;</span><br></pre></td></tr></table></figure>
+<p>这是因为 RedisTemplate 使用了泛型，此时框架无法确定需要注入的是 redisTemplate 还是 stringRedisTemplate。因此，使用 RedisTemplate 时需要指定泛型。</p>
+<h3 id="使用自定义实体类时-No-beans-of-‘RedisTemplate-lt-String-City-gt-’-type-found"><a href="#使用自定义实体类时-No-beans-of-‘RedisTemplate-lt-String-City-gt-’-type-found" class="headerlink" title="使用自定义实体类时, No beans of ‘RedisTemplate&lt;String,City&gt;’ type found"></a>使用自定义实体类时, No beans of ‘RedisTemplate&lt;String,City&gt;’ type found</h3><p>我们建立如下实体类 City,并且实现了 Serializable 接口，以在 RedisTemplate 中使用二进制序列化的方式存储 City 实例。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Entity</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">City</span> <span class="keyword">implements</span> <span class="title">Serializable</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    Integer id;</span><br><span class="line">    Integer provinceId;</span><br><span class="line">    String cityName;</span><br><span class="line">    String description;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">int</span> <span class="title">getId</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> id;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">setId</span><span class="params">(<span class="keyword">int</span> id)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>.id = id;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">int</span> <span class="title">getProvinceId</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> provinceId;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">setProvinceId</span><span class="params">(<span class="keyword">int</span> provinceId)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>.provinceId = provinceId;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> String <span class="title">getCityName</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> cityName;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">setCityName</span><span class="params">(String cityName)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>.cityName = cityName;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> String <span class="title">getDescription</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> description;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">setDescription</span><span class="params">(String description)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>.description = description;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>然后尝试使用如下代码注入 RedisTemplate&lt;String,City&gt;，</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Autowired</span></span><br><span class="line"><span class="keyword">private</span> RedisTemplate&lt;String, City&gt; mRedisTemplate;</span><br></pre></td></tr></table></figure>
+<p>会报错‘No beans of ‘RedisTemplate&lt;String,City&gt;’ type found’，这是因为 redis 没有注册这一类型的 bean，需要我们增加添加这一bean。</p>
+<p>我们可以创建一个 RedisConfig 类，在其中进行配置。</p>
+<p>首先，为了自定义 City 类的序列化行为，我们可以继承 RedisSerializer 实现类 MyRedisSerializer 自定义序列化行为，只需要实现接口的 serialize() 方法和 deserialize() 方法，不再叙述。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Configuration</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">RedisConfig</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Bean</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> RedisTemplate&lt;String, City&gt; <span class="title">redisTemplate</span><span class="params">(RedisConnectionFactory redisConnectionFactory)</span> </span>&#123;</span><br><span class="line">        RedisTemplate&lt;String, City&gt; template = <span class="keyword">new</span> RedisTemplate&lt;&gt;();</span><br><span class="line">        template.setConnectionFactory(redisConnectionFactory);</span><br><span class="line">        template.setKeySerializer(<span class="keyword">new</span> StringRedisSerializer());</span><br><span class="line">        template.setValueSerializer(<span class="keyword">new</span> MyRedisSerializer());</span><br><span class="line">        template.afterPropertiesSet();</span><br><span class="line">        <span class="keyword">return</span> template;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这样我们就实现了 RedisTemplate&lt;String, City&gt; 这一 bean，而且使用自定义的 MyRedisSerializer 类的序列化规则对 City 进行序列化。</p>
+<p>关于这一配置 bean 的方法，其原理我们可以查看 RedisAutoConfiguration 类，其中有如下代码：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Bean</span></span><br><span class="line"><span class="meta">@ConditionalOnMissingBean</span>(name = <span class="string">"redisTemplate"</span>)</span><br><span class="line"><span class="function"><span class="keyword">public</span> RedisTemplate&lt;Object, Object&gt; <span class="title">redisTemplate</span><span class="params">(</span></span></span><br><span class="line"><span class="function"><span class="params">			RedisConnectionFactory redisConnectionFactory)</span> <span class="keyword">throws</span> UnknownHostException </span>&#123;</span><br><span class="line">	RedisTemplate&lt;Object, Object&gt; template = <span class="keyword">new</span> RedisTemplate&lt;&gt;();</span><br><span class="line">	template.setConnectionFactory(redisConnectionFactory);</span><br><span class="line">	<span class="keyword">return</span> template;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这里的关键是 @ConditionalOnMissingBean(name = “redisTemplate”) 注解，注解的作用是：如果用户没有配置 name 为 redisTemplate 的 bean，那么使用此方法定义的 RedisTemplate&lt;Object, Object&gt; 进行注入，否则使用用户配置的 bean。</p>
+<p>所以，我们可以用之前的代码自定义一个 bean，实现 RedisTemplate&lt;String, City&gt;。</p>
+<h3 id="自定义-StringRedisTemplate"><a href="#自定义-StringRedisTemplate" class="headerlink" title="自定义 StringRedisTemplate"></a>自定义 StringRedisTemplate</h3><p>如果我们想自己实现 StringRedisTemplate，如上，我们可以 RedisAutoConfiguration 类看到如下代码：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Bean</span></span><br><span class="line"><span class="meta">@ConditionalOnMissingBean</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> StringRedisTemplate <span class="title">stringRedisTemplate</span><span class="params">(</span></span></span><br><span class="line"><span class="function"><span class="params">			RedisConnectionFactory redisConnectionFactory)</span> <span class="keyword">throws</span> UnknownHostException </span>&#123;</span><br><span class="line">	StringRedisTemplate template = <span class="keyword">new</span> StringRedisTemplate();</span><br><span class="line">	template.setConnectionFactory(redisConnectionFactory);</span><br><span class="line">	<span class="keyword">return</span> template;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这里仍然是使用了 @ConditionalOnMissingBean 注解，所以我们需要按照如下代码来实现：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Bean</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> StringRedisTemplate <span class="title">stringRedisTemplate</span><span class="params">(RedisConnectionFactory redisConnectionFactory)</span> </span>&#123;</span><br><span class="line">    <span class="comment">// 自定义配置</span></span><br><span class="line">    <span class="comment">//....</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>接下来注入和使用 StringRedisTemplate 实例，使用断点或者 log 等可以看到，此时注入的 StringRedisTemplate 是我们自己配置的实例。</p>
+<p>要注意的是，只有我们使用了 RedisConnectionFactory 对 StringRedisTemplate 进行了自定义配置时并调用了 template.afterPropertiesSet() 方法使配置生效后，我们的 StringRedisTemplate 才与默认的 StringRedisTemplate 不同，才可以使用，不然项目会启动失败。另外，若只是需要进行指定序列化方式等，RedisTemplate 类本身就提供了相应方法，不必为此自行配置 bean。</p>
+<h2 id="使用代码进行-Redis-的配置"><a href="#使用代码进行-Redis-的配置" class="headerlink" title="使用代码进行 Redis 的配置"></a>使用代码进行 Redis 的配置</h2><p>如果我们想对 配置文件中的 redis 配置项进行覆盖，或者我们不想使用配置文件，想完全使用代码进行配置，可以使用如下代码：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Configuration</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">RedisConfig</span> </span>&#123;</span><br><span class="line">    <span class="meta">@Bean</span></span><br><span class="line">    <span class="function">RedisConnectionFactory <span class="title">redisConnectionFactory</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        RedisStandaloneConfiguration configuration = <span class="keyword">new</span> RedisStandaloneConfiguration();</span><br><span class="line">        <span class="comment">//configuration.setXXX();</span></span><br><span class="line">        LettuceConnectionFactory factory = <span class="keyword">new</span> LettuceConnectionFactory(configuration);</span><br><span class="line">        factory.afterPropertiesSet();</span><br><span class="line">        <span class="keyword">return</span> factory;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这样，我们在 configuration 实例中设置的项会覆盖掉配置文件中内容和默认内容。这里的原理上文提到的相同，我们可以在 LettuceConnectionConfiguration 类中看到如下代码：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Bean</span></span><br><span class="line"><span class="meta">@ConditionalOnMissingBean</span>(RedisConnectionFactory.class)</span><br><span class="line"><span class="function"><span class="keyword">public</span> LettuceConnectionFactory <span class="title">redisConnectionFactory</span><span class="params">(</span></span></span><br><span class="line"><span class="function"><span class="params">			ClientResources clientResources)</span> <span class="keyword">throws</span> UnknownHostException </span>&#123;</span><br><span class="line">	LettuceClientConfiguration clientConfig = getLettuceClientConfiguration(</span><br><span class="line">				clientResources, <span class="keyword">this</span>.properties.getLettuce().getPool());</span><br><span class="line">	<span class="keyword">return</span> createLettuceConnectionFactory(clientConfig);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>仍然是 @ConditionalOnMissingBean 注解的作用。</p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/java/" rel="tag"># java</a>
+          
+            <a href="/tags/Spring-Boot/" rel="tag"># Spring Boot</a>
+          
+            <a href="/tags/Redis/" rel="tag"># Redis</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2018/03/25/java Socket初探—局域网内通信与广播/" rel="next" title="java Socket初探—服务器与局域网">
+                <i class="fa fa-chevron-left"></i> java Socket初探—服务器与局域网
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2018/07/28/Spring security 登陆认证的重要概念、流程梳理及自定义设置/" rel="prev" title="Spring security 登陆认证的重要概念、流程梳理及自定义设置">
+                Spring security 登陆认证的重要概念、流程梳理及自定义设置 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image" src="/images/avatar.gif" alt="马天">
+            
+              <p class="site-author-name" itemprop="name">马天</p>
+              <p class="site-description motion-element" itemprop="description">学生</p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives">
+              
+                  <span class="site-state-item-count">12</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">5</span>
+                  <span class="site-state-item-name">分类</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">6</span>
+                  <span class="site-state-item-name">标签</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#RedisTemplate-的使用"><span class="nav-number">1.</span> <span class="nav-text">RedisTemplate 的使用</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#There-is-more-than-one-beans-‘RedisTemplate’-type"><span class="nav-number">1.1.</span> <span class="nav-text">There is more than one beans ‘RedisTemplate’ type</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#使用自定义实体类时-No-beans-of-‘RedisTemplate-lt-String-City-gt-’-type-found"><span class="nav-number">1.2.</span> <span class="nav-text">使用自定义实体类时, No beans of ‘RedisTemplate&lt;String,City&gt;’ type found</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#自定义-StringRedisTemplate"><span class="nav-number">1.3.</span> <span class="nav-text">自定义 StringRedisTemplate</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#使用代码进行-Redis-的配置"><span class="nav-number">2.</span> <span class="nav-text">使用代码进行 Redis 的配置</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">马天</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Muse</a> v5.1.4</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

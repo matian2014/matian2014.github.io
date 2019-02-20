@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-Hans">
+<head><meta name="generator" content="Hexo 3.8.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css">
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css">
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/avatar.gif?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/avatar.gif?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/avatar.gif?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/avatar.gif?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="java,Spring Boot,">
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="代码使用到了 ApplicationRunner 和 CommandLineRunner，于是把 Spring boot 的启动流程，也就是 SpringApplication.run() 方法内的操作跟着断点大概看了下。下面整理下简略的过程，结合关键的代码。  初始化工作  进行一些初始化， 12345ConfigurableApplicationContext context = null;C">
+<meta name="keywords" content="java,Spring Boot">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Spring Boot 启动流程简记">
+<meta property="og:url" content="http://yoursite.com/2019/02/17/Spring Boot 启动流程简记/index.html">
+<meta property="og:site_name" content="马天">
+<meta property="og:description" content="代码使用到了 ApplicationRunner 和 CommandLineRunner，于是把 Spring boot 的启动流程，也就是 SpringApplication.run() 方法内的操作跟着断点大概看了下。下面整理下简略的过程，结合关键的代码。  初始化工作  进行一些初始化， 12345ConfigurableApplicationContext context = null;C">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:updated_time" content="2019-02-17T07:12:40.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Spring Boot 启动流程简记">
+<meta name="twitter:description" content="代码使用到了 ApplicationRunner 和 CommandLineRunner，于是把 Spring boot 的启动流程，也就是 SpringApplication.run() 方法内的操作跟着断点大概看了下。下面整理下简略的过程，结合关键的代码。  初始化工作  进行一些初始化， 12345ConfigurableApplicationContext context = null;C">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"always","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2019/02/17/Spring Boot 启动流程简记/">
+
+
+
+
+
+  <title>Spring Boot 启动流程简记 | 马天</title>
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">马天</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br>
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br>
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br>
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br>
+            
+            关于
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/02/17/Spring Boot 启动流程简记/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="马天">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="马天">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Spring Boot 启动流程简记</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-02-17T13:50:20+08:00">
+                2019-02-17
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Spring/" itemprop="url" rel="index">
+                    <span itemprop="name">Spring</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>代码使用到了 ApplicationRunner 和 CommandLineRunner，于是把 Spring boot 的启动流程，也就是 SpringApplication.run() 方法内的操作跟着断点大概看了下。下面整理下简略的过程，结合关键的代码。</p>
+<ol>
+<li>初始化工作</li>
+</ol>
+<p>进行一些初始化，</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">ConfigurableApplicationContext context = <span class="keyword">null</span>;</span><br><span class="line">Collection&lt;SpringBootExceptionReporter&gt; exceptionReporters = <span class="keyword">new</span> ArrayList&lt;&gt;();</span><br><span class="line">configureHeadlessProperty();</span><br><span class="line">SpringApplicationRunListeners listeners = getRunListeners(args);</span><br><span class="line">listeners.starting();</span><br></pre></td></tr></table></figure>
+<p>ConfigurableApplicationContext 为上下文环境；</p>
+<p>SpringBootExceptionReporter 是可用于 “support custom reporting of SpringApplication startup errors” 的接口；</p>
+<p>SpringApplicationRunListeners 是启动过程中的事件监听器列表，维护的 SpringApplicationRunListener 对象提供了以下回调接口：</p>
+<a id="more"></a>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br></pre></td><td class="code"><pre><span class="line">   /**</span><br><span class="line"> * Called immediately when the run method has first started. Can be used for very</span><br><span class="line"> * early initialization.</span><br><span class="line"> */</span><br><span class="line">void starting();</span><br><span class="line"></span><br><span class="line">/**</span><br><span class="line"> * Called once the environment has been prepared, but before the</span><br><span class="line"> * &#123;@link ApplicationContext&#125; has been created.</span><br><span class="line"> * @param environment the environment</span><br><span class="line"> */</span><br><span class="line">void environmentPrepared(ConfigurableEnvironment environment);</span><br><span class="line"></span><br><span class="line">/**</span><br><span class="line"> * Called once the &#123;@link ApplicationContext&#125; has been created and prepared, but</span><br><span class="line"> * before sources have been loaded.</span><br><span class="line"> * @param context the application context</span><br><span class="line"> */</span><br><span class="line">void contextPrepared(ConfigurableApplicationContext context);</span><br><span class="line"></span><br><span class="line">/**</span><br><span class="line"> * Called once the application context has been loaded but before it has been</span><br><span class="line"> * refreshed.</span><br><span class="line"> * @param context the application context</span><br><span class="line"> */</span><br><span class="line">void contextLoaded(ConfigurableApplicationContext context);</span><br><span class="line"></span><br><span class="line">/**</span><br><span class="line"> * The context has been refreshed and the application has started but</span><br><span class="line"> * &#123;@link CommandLineRunner CommandLineRunners&#125; and &#123;@link ApplicationRunner</span><br><span class="line"> * ApplicationRunners&#125; have not been called.</span><br><span class="line"> * @param context the application context.</span><br><span class="line"> * @since 2.0.0</span><br><span class="line"> */</span><br><span class="line">void started(ConfigurableApplicationContext context);</span><br><span class="line"></span><br><span class="line">/**</span><br><span class="line"> * Called immediately before the run method finishes, when the application context has</span><br><span class="line"> * been refreshed and all &#123;@link CommandLineRunner CommandLineRunners&#125; and</span><br><span class="line"> * &#123;@link ApplicationRunner ApplicationRunners&#125; have been called.</span><br><span class="line"> * @param context the application context.</span><br><span class="line"> * @since 2.0.0</span><br><span class="line"> */</span><br><span class="line">void running(ConfigurableApplicationContext context);</span><br><span class="line"></span><br><span class="line">/**</span><br><span class="line"> * Called when a failure occurs when running the application.</span><br><span class="line"> * @param context the application context or &#123;@code null&#125; if a failure occurred before</span><br><span class="line"> * the context was created</span><br><span class="line"> * @param exception the failure</span><br><span class="line"> * @since 2.0.0</span><br><span class="line"> */</span><br><span class="line">void failed(ConfigurableApplicationContext context, Throwable exception);</span><br></pre></td></tr></table></figure>
+<ol start="2">
+<li>初始化 Environment</li>
+</ol>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">ApplicationArguments applicationArguments = <span class="keyword">new</span> DefaultApplicationArguments(</span><br><span class="line">					args);</span><br><span class="line">ConfigurableEnvironment environment = prepareEnvironment(listeners,</span><br><span class="line">					applicationArguments);</span><br><span class="line">configureIgnoreBeanInfo(environment);</span><br></pre></td></tr></table></figure>
+<ol start="3">
+<li>初始化 ApplicationContext</li>
+</ol>
+<p>依次调用了以下函数：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">prepareContext(context, environment, listeners, applicationArguments,</span><br><span class="line">					printedBanner);</span><br><span class="line">refreshContext(context);</span><br><span class="line">afterRefresh(context, applicationArguments);</span><br></pre></td></tr></table></figure>
+<p>prepareContext() 进行一些初始化操作。</p>
+<p>在 refreshContext() 中，首先初始化 ApplicationContext，并且对实现了 ApplicationContextAware、EnvironmentAware 等接口的 bean 调用 set***() 方法，通知初始化完成。</p>
+<p>其中，类 AbstractApplicationContext 的 refresh() 方法中留下了一个 onRefresh() 方法，默认无操作，可以继承 AbstractApplicationContext 来自定义实现，以“Initialize other special beans in specific context subclasses”。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * Template method which can be overridden to add context-specific refresh work.</span></span><br><span class="line"><span class="comment"> * Called on initialization of special beans, before instantiation of singletons.</span></span><br><span class="line"><span class="comment"> * &lt;p&gt;This implementation is empty.</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@throws</span> BeansException in case of errors</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@see</span> #refresh()</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"> <span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">onRefresh</span><span class="params">()</span> <span class="keyword">throws</span> BeansException </span>&#123;</span><br><span class="line">	<span class="comment">// For subclasses: do nothing by default. </span></span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure>
+<p>然后将调用 finishBeanFactoryInitialization() 方法来“Instantiate all remaining (non-lazy-init) singletons”</p>
+<p>afterRefresh() 内没有操作，同样是一个 protected 方法（prepareContext() 和 refreshContext() 都是 private 的），可继承来自定义实现。</p>
+<p>期间的进度将通过 SpringApplicationRunListener 的回调通知。</p>
+<ol start="4">
+<li>调用 Runner</li>
+</ol>
+<p>至此启动完成，</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">listeners.started(context);</span><br><span class="line">callRunners(context, applicationArguments);</span><br></pre></td></tr></table></figure>
+<p>SpringApplicationRunListener 通知启动完成，然后调用设置的各个 Runner，尝试按照 @Order 注解指定的顺序排序，然后按顺序依次调用。</p>
+<p>应当注意，以上提到的 ApplicationContextAware、EnvironmentAware 和 ApplicationRunner 、CommandLineRunner 的实现都应当作为 bean，才能生效。</p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/java/" rel="tag"># java</a>
+          
+            <a href="/tags/Spring-Boot/" rel="tag"># Spring Boot</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2019/02/11/正则表达式语法笔记及常用表达式/" rel="next" title="正则表达式语法笔记及常用表达式">
+                <i class="fa fa-chevron-left"></i> 正则表达式语法笔记及常用表达式
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+
+      <section class="site-overview-wrap sidebar-panel sidebar-panel-active">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image" src="/images/avatar.gif" alt="马天">
+            
+              <p class="site-author-name" itemprop="name">马天</p>
+              <p class="site-description motion-element" itemprop="description">学生</p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives">
+              
+                  <span class="site-state-item-count">12</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">5</span>
+                  <span class="site-state-item-name">分类</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">6</span>
+                  <span class="site-state-item-name">标签</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">马天</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Muse</a> v5.1.4</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>
