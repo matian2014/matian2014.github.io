@@ -68,7 +68,7 @@
 
 
 
-  <meta name="keywords" content="Hexo,">
+  <meta name="keywords" content="Docker,Shell,">
 
 
 
@@ -79,18 +79,18 @@
 
 
 
-<meta name="description" content="总结下Hexo的基本命令。 发布文章12345hexo new post &amp;quot;article title&amp;quot;hexo ghexo d    其中，后两条可以合并为 1hexo g -d">
-<meta name="keywords" content="Hexo">
+<meta name="description" content="CMD，有多个的话之后最后一个生效，作为启动时的默认命令行和用于向 ENTRYPOINT 传递参数，会被 docker run 带的命令行和参数覆盖。 ENTRYPOINT，有多个时最后一个生效，启动时执行，不会被 docker run 带的命令行和参数覆盖。 exec form 和 shell form两者都有 exec 和 shell 两种格式的写法，如下： 1234# exec formEN">
+<meta name="keywords" content="Docker,Shell">
 <meta property="og:type" content="article">
-<meta property="og:title" content="Hexo学习--基本操作">
-<meta property="og:url" content="http://yoursite.com/2017/08/05/Hexo学习/index.html">
+<meta property="og:title" content="Dockerfile CMD 与 ENTRYPOINT 简记">
+<meta property="og:url" content="http://yoursite.com/2019/02/25/Dockerfile CMD 与 ENTRYPOINT 简记/index.html">
 <meta property="og:site_name" content="马天">
-<meta property="og:description" content="总结下Hexo的基本命令。 发布文章12345hexo new post &amp;quot;article title&amp;quot;hexo ghexo d    其中，后两条可以合并为 1hexo g -d">
+<meta property="og:description" content="CMD，有多个的话之后最后一个生效，作为启动时的默认命令行和用于向 ENTRYPOINT 传递参数，会被 docker run 带的命令行和参数覆盖。 ENTRYPOINT，有多个时最后一个生效，启动时执行，不会被 docker run 带的命令行和参数覆盖。 exec form 和 shell form两者都有 exec 和 shell 两种格式的写法，如下： 1234# exec formEN">
 <meta property="og:locale" content="zh-Hans">
-<meta property="og:updated_time" content="2018-09-20T08:02:20.000Z">
+<meta property="og:updated_time" content="2019-02-25T09:05:14.919Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="Hexo学习--基本操作">
-<meta name="twitter:description" content="总结下Hexo的基本命令。 发布文章12345hexo new post &amp;quot;article title&amp;quot;hexo ghexo d    其中，后两条可以合并为 1hexo g -d">
+<meta name="twitter:title" content="Dockerfile CMD 与 ENTRYPOINT 简记">
+<meta name="twitter:description" content="CMD，有多个的话之后最后一个生效，作为启动时的默认命令行和用于向 ENTRYPOINT 传递参数，会被 docker run 带的命令行和参数覆盖。 ENTRYPOINT，有多个时最后一个生效，启动时执行，不会被 docker run 带的命令行和参数覆盖。 exec form 和 shell form两者都有 exec 和 shell 两种格式的写法，如下： 1234# exec formEN">
 
 
 
@@ -120,13 +120,13 @@
 
 
 
-  <link rel="canonical" href="http://yoursite.com/2017/08/05/Hexo学习/">
+  <link rel="canonical" href="http://yoursite.com/2019/02/25/Dockerfile CMD 与 ENTRYPOINT 简记/">
 
 
 
 
 
-  <title>Hexo学习--基本操作 | 马天</title>
+  <title>Dockerfile CMD 与 ENTRYPOINT 简记 | 马天</title>
   
 
 
@@ -253,7 +253,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2017/08/05/Hexo学习/">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/02/25/Dockerfile CMD 与 ENTRYPOINT 简记/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="name" content="马天">
@@ -270,7 +270,7 @@
 
         
         
-          <h1 class="post-title" itemprop="name headline">Hexo学习--基本操作</h1>
+          <h1 class="post-title" itemprop="name headline">Dockerfile CMD 与 ENTRYPOINT 简记</h1>
         
 
         <div class="post-meta">
@@ -282,8 +282,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-08-05T22:14:22+08:00">
-                2017-08-05
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-02-25T16:52:22+08:00">
+                2019-02-25
               </time>
             
 
@@ -305,8 +305,8 @@
               
               
                 <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/Hexo/" itemprop="url" rel="index">
-                    <span itemprop="name">Hexo</span>
+                  <a href="/categories/Docker/" itemprop="url" rel="index">
+                    <span itemprop="name">Docker</span>
                   </a>
                 </span>
 
@@ -342,19 +342,85 @@
       
 
       
-        <p>总结下Hexo的基本命令。</p>
-<h2 id="发布文章"><a href="#发布文章" class="headerlink" title="发布文章"></a>发布文章</h2><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">hexo new post &quot;article title&quot;</span><br><span class="line"></span><br><span class="line">hexo g</span><br><span class="line"></span><br><span class="line">hexo d</span><br></pre></td></tr></table></figure>
-<p>   其中，后两条可以合并为</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hexo g -d</span><br></pre></td></tr></table></figure>
-   <a id="more"></a>
-<h2 id="删除文章"><a href="#删除文章" class="headerlink" title="删除文章"></a>删除文章</h2><p>   删除本地文件后，部署即可。如果不改变可以使用</p>
-   <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hexo clean</span><br></pre></td></tr></table></figure>
-<p>   来清除缓存。</p>
-<h2 id="设置主题"><a href="#设置主题" class="headerlink" title="设置主题"></a>设置主题</h2><ul>
-<li>下载主题代码文件，放入“/themes/”中</li>
-<li>进入站点“_config.yml”文件，修改其中“theme:”项为刚才保存的文件名</li>
-<li>部署更新</li>
-</ul>
+        <p>CMD，有多个的话之后最后一个生效，作为启动时的默认命令行和用于向 ENTRYPOINT 传递参数，会被 docker run 带的命令行和参数覆盖。</p>
+<p>ENTRYPOINT，有多个时最后一个生效，启动时执行，不会被 docker run 带的命令行和参数覆盖。</p>
+<h2 id="exec-form-和-shell-form"><a href="#exec-form-和-shell-form" class="headerlink" title="exec form 和 shell form"></a>exec form 和 shell form</h2><p>两者都有 exec 和 shell 两种格式的写法，如下：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span> exec form</span><br><span class="line">ENTRYPOINT ["executable", "param1", "param2"]</span><br><span class="line"><span class="meta">#</span>shell form</span><br><span class="line">ENTRYPOINT command param1 param2</span><br></pre></td></tr></table></figure>
+ <a id="more"></a>
+<p>exec 形式的写法，第一项应当是一个可执行命令。</p>
+<p>shell 形式的写法，会按照</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sh -c command param1 param2</span><br></pre></td></tr></table></figure>
+<p>来执行。</p>
+<p>关于两种格式和 CMD 与 ENTRYPOINT 的组合情况，docker 官网给出了一个很简洁易懂的表格：</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>No ENTRYPOINT</th>
+<th>ENTRYPOINT exec_entry p1_entry</th>
+<th>ENTRYPOINT [“exec_entry”, “p1_entry”]</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>No CMD</td>
+<td>error, not allowed</td>
+<td>/bin/sh -c exec_entry p1_entry</td>
+<td>exec_entry p1_entry</td>
+</tr>
+<tr>
+<td>CMD [“exec_cmd”, “p1_cmd”]</td>
+<td>exec_cmd p1_cmd</td>
+<td>/bin/sh -c exec_entry p1_entry</td>
+<td>exec_entry p1_entry exec_cmd p1_cmd</td>
+</tr>
+<tr>
+<td>CMD [“exec_cmd”, “p1_cmd”]</td>
+<td>p1_cmd p2_cmd</td>
+<td>/bin/sh -c exec_entry p1_entry</td>
+<td>exec_entry p1_entry p1_cmd p2_cmd</td>
+</tr>
+<tr>
+<td>CMD exec_cmd p1_cmd</td>
+<td>/bin/sh -c exec_cmd p1_cmd</td>
+<td>/bin/sh -c exec_entry p1_entry</td>
+<td>exec_entry p1_entry /bin/sh -c exec_cmd p1_cmd</td>
+</tr>
+</tbody>
+</table>
+<p>exec 写法如果要传入参数，比如</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ENTRYPOINT [ "echo", "$HOME" ]</span><br></pre></td></tr></table></figure>
+<p>将输出</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">$</span>HOME</span><br></pre></td></tr></table></figure>
+<p>因为不会执行 shell，需要参数替换的话，可以调用 shell 执行：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ENTRYPOINT [ "sh", "-c", "echo $HOME" ]</span><br></pre></td></tr></table></figure>
+<h2 id="docker-run-覆盖-CMD-命令行和参数"><a href="#docker-run-覆盖-CMD-命令行和参数" class="headerlink" title="docker run 覆盖 CMD 命令行和参数"></a>docker run 覆盖 CMD 命令行和参数</h2><p>关于 CMD 被启动时命令行覆盖，可见下面例子，假如镜像 testcmd 的 DockerFile 如下：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">FROM gcc</span><br><span class="line">WORKDIR /app</span><br><span class="line">COPY . /app</span><br><span class="line">CMD ["/bin/echo","tian"]</span><br></pre></td></tr></table></figure>
+<p>如果使用：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker run testcmd</span><br></pre></td></tr></table></figure>
+<p>将输出默认的：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">tian</span><br></pre></td></tr></table></figure>
+<p>如果使用：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker run testcmd echo matian</span><br></pre></td></tr></table></figure>
+<p>将输出：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">matian</span><br></pre></td></tr></table></figure>
+<h2 id="CMD-向-ENTRYPOINT-传参"><a href="#CMD-向-ENTRYPOINT-传参" class="headerlink" title="CMD 向 ENTRYPOINT 传参"></a>CMD 向 ENTRYPOINT 传参</h2><p>关于 CMD 向 ENTRYPOINT 的传参，结合表格很容易明白，可见下面例子：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">FROM gcc</span><br><span class="line">WORKDIR /app</span><br><span class="line">COPY . /app</span><br><span class="line">CMD ["ma","tian"]</span><br><span class="line">ENTRYPOINT ["/bin/echo","hello"]</span><br></pre></td></tr></table></figure>
+<p>执行</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker run testcmd</span><br></pre></td></tr></table></figure>
+<p>将输出</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hello ma tian</span><br></pre></td></tr></table></figure>
+<p>执行</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker run testcmd tian ma</span><br></pre></td></tr></table></figure>
+<p>将输出</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hello tian ma</span><br></pre></td></tr></table></figure>
+<h2 id="ENV-参数"><a href="#ENV-参数" class="headerlink" title="ENV 参数"></a>ENV 参数</h2><p>关于 ENV 定义的参数，见下例：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">FROM gcc</span><br><span class="line">WORKDIR /app</span><br><span class="line">COPY . /app</span><br><span class="line">ENV NAME=""</span><br><span class="line">ENTRYPOINT ["sh","-c","echo $NAME"]</span><br></pre></td></tr></table></figure>
+<p>执行</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker run -e NAME="matian" testcmd</span><br></pre></td></tr></table></figure>
+<p>将输出</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">matian</span><br></pre></td></tr></table></figure>
+<p>要注意 -e NAME=”matian” 在命令中的位置，testcmd（镜像名）在最后。</p>
 
       
     </div>
@@ -372,7 +438,9 @@
       
         <div class="post-tags">
           
-            <a href="/tags/Hexo/" rel="tag"># Hexo</a>
+            <a href="/tags/Docker/" rel="tag"># Docker</a>
+          
+            <a href="/tags/Shell/" rel="tag"># Shell</a>
           
         </div>
       
@@ -385,15 +453,15 @@
         <div class="post-nav">
           <div class="post-nav-next post-nav-item">
             
+              <a href="/2019/02/24/bash shell ABC/" rel="next" title="bash shell ABC">
+                <i class="fa fa-chevron-left"></i> bash shell ABC
+              </a>
+            
           </div>
 
           <span class="post-nav-divider"></span>
 
           <div class="post-nav-prev post-nav-item">
-            
-              <a href="/2017/08/17/关于 Integer 的 equals 与 ==/" rel="prev" title="关于 Integer 的 equals 与 ==">
-                关于 Integer 的 equals 与 == <i class="fa fa-chevron-right"></i>
-              </a>
             
           </div>
         </div>
@@ -527,7 +595,7 @@
             
 
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#发布文章"><span class="nav-number">1.</span> <span class="nav-text">发布文章</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#删除文章"><span class="nav-number">2.</span> <span class="nav-text">删除文章</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#设置主题"><span class="nav-number">3.</span> <span class="nav-text">设置主题</span></a></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#exec-form-和-shell-form"><span class="nav-number">1.</span> <span class="nav-text">exec form 和 shell form</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#docker-run-覆盖-CMD-命令行和参数"><span class="nav-number">2.</span> <span class="nav-text">docker run 覆盖 CMD 命令行和参数</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#CMD-向-ENTRYPOINT-传参"><span class="nav-number">3.</span> <span class="nav-text">CMD 向 ENTRYPOINT 传参</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#ENV-参数"><span class="nav-number">4.</span> <span class="nav-text">ENV 参数</span></a></li></ol></div>
             
 
           </div>
