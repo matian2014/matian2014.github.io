@@ -87,7 +87,7 @@
 <meta property="og:site_name" content="马天">
 <meta property="og:description" content="要在服务器进行一些重复性的体力活，干脆简单看了下shell，下面记录一些内容，都是最基本的用法。 ‘’、``和””以输出为例，’’内的原原本本的输出；``内的内容作为一个命令，先执行其中命令，再执行原命令，即代表命令替换；””内的内容，进行参数替换(如$name)和命令替换(如`echo abc`)。 比如下面代码 12echo &quot;`echo hello world`&quot;echo &apos;`echo he">
 <meta property="og:locale" content="zh-Hans">
-<meta property="og:updated_time" content="2019-02-24T09:10:55.363Z">
+<meta property="og:updated_time" content="2019-02-26T00:15:45.304Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="bash shell ABC">
 <meta name="twitter:description" content="要在服务器进行一些重复性的体力活，干脆简单看了下shell，下面记录一些内容，都是最基本的用法。 ‘’、``和””以输出为例，’’内的原原本本的输出；``内的内容作为一个命令，先执行其中命令，再执行原命令，即代表命令替换；””内的内容，进行参数替换(如$name)和命令替换(如`echo abc`)。 比如下面代码 12echo &quot;`echo hello world`&quot;echo &apos;`echo he">
@@ -364,6 +364,14 @@
 <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">s=matian</span><br><span class="line">if [ $s = 'ma' ]</span><br><span class="line">then</span><br><span class="line">    echo $s</span><br><span class="line">fi</span><br></pre></td></tr></table></figure>
 <p>[] 内表达式两侧要有空格。</p>
 <p>= 是比较字符是否相等，两侧要有空格。</p>
+<p>另有，运算符</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span> 非</span><br><span class="line">!</span><br><span class="line"><span class="meta">#</span> 或</span><br><span class="line">-o</span><br><span class="line"><span class="meta">#</span> 与</span><br><span class="line">-a</span><br></pre></td></tr></table></figure>
+<p>用于一个条件即一个“[]”内的多个条件之间的判断。</p>
+<p>运算符</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span> 或</span><br><span class="line">||</span><br><span class="line"><span class="meta">#</span> 与</span><br><span class="line">&amp;&amp;</span><br></pre></td></tr></table></figure>
+<p>用于多个条件即多个“[]”之间的判断。</p>
+<p>即：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">if [ condition1 -a condition2 ]</span><br><span class="line">then</span><br><span class="line">    #.......</span><br><span class="line">fi</span><br><span class="line"></span><br><span class="line">if [ condition1 ] &amp;&amp; [ condition2 ]</span><br><span class="line">then</span><br><span class="line">    #.......</span><br><span class="line">fi</span><br></pre></td></tr></table></figure>
 <h3 id="for"><a href="#for" class="headerlink" title="for"></a>for</h3><p>比如</p>
 <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">for file in `ls ~`</span><br><span class="line">do</span><br><span class="line">    echo $file</span><br><span class="line">done</span><br></pre></td></tr></table></figure>
 <h3 id="正则表达式"><a href="#正则表达式" class="headerlink" title="正则表达式"></a>正则表达式</h3><p>比如</p>
