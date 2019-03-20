@@ -252,7 +252,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/09/07/java 动态代理：java Proxy 和 CGLIB/">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/03/19/Servlet filter记录/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="name" content="马天">
@@ -271,7 +271,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2019/09/07/java 动态代理：java Proxy 和 CGLIB/" itemprop="url">java 动态代理：java Proxy 和 CGLIB</a></h1>
+                <a class="post-title-link" href="/2019/03/19/Servlet filter记录/" itemprop="url">Servlet filter记录</a></h1>
         
 
         <div class="post-meta">
@@ -283,8 +283,157 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-09-07T10:03:18+08:00">
-                2019-09-07
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-03-19T13:54:17+08:00">
+                2019-03-19
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/Spring/" itemprop="url" rel="index">
+                    <span itemprop="name">Spring</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <p>在 Spring Boot 中观察了一下有新的请求时，Servlet filter 的执行情况，做下记录。</p>
+<h2 id="Spring-Boot-默认-Servlet-filter"><a href="#Spring-Boot-默认-Servlet-filter" class="headerlink" title="Spring Boot 默认 Servlet filter"></a>Spring Boot 默认 Servlet filter</h2><p>Spring Boot 会按照 ApplicationFilterChain 中的数组 filters 里保存的 filter 按顺序执行，对于 OrderedFilter 可以指定 order 值（一个 int 值），值小的先执行，不指定 order 时按照首字母顺序执行。</p>
+<p>默认情况下，有 CharacterEncodingFilter、HiddenHttpMethodFilter、FormContentFilter 和 RequestContextFilter，以及 webSocket 的 WsFilter。CharacterEncodingFilter、HiddenHttpMethodFilter、FormContentFilter 和 RequestContextFilter 都是使用了 Ordered***Filter 实例，order 值分别是 -2147483648、-10000、-9900 和 -105。</p>
+<p>RequestContextFilter 主要用于使用第三方 Servlet 时的情况。关于 CharacterEncodingFilter、HiddenHttpMethodFilter 和 FormContentFilter，其作用可见如下。 </p>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/2019/03/19/Servlet filter记录/#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/03/07/java 动态代理：java Proxy 和 CGLIB/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="马天">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="马天">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2019/03/07/java 动态代理：java Proxy 和 CGLIB/" itemprop="url">java 动态代理：java Proxy 和 CGLIB</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-03-07T10:03:18+08:00">
+                2019-03-07
               </time>
             
 
@@ -349,7 +498,7 @@
 <p>Proxy 只能代理接口的实现，会被转发到从其原理不难看出，这是因为生成的代理类已经继承了 Proxy，因为 java 单继承的机制，所以只能实现接口作为其代理。</p>
           <!--noindex-->
           <div class="post-button text-center">
-            <a class="btn" href="/2019/09/07/java 动态代理：java Proxy 和 CGLIB/#more" rel="contents">
+            <a class="btn" href="/2019/03/07/java 动态代理：java Proxy 和 CGLIB/#more" rel="contents">
               阅读全文 &raquo;
             </a>
           </div>
@@ -1631,155 +1780,6 @@
 
 
     
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2018/03/03/JDBC邂逅——连接数据库与执行语句/">
-
-    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="马天">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="马天">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2018/03/03/JDBC邂逅——连接数据库与执行语句/" itemprop="url">JDBC邂逅——连接数据库与执行语句</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-03-03T21:32:42+08:00">
-                2018-03-03
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category">
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/java/" itemprop="url" rel="index">
-                    <span itemprop="name">java</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <p>使用 JDBC 可以方便的操作各种类型的数据库。以下记录一下 JDBC 的基础操作。</p>
-<h2 id="连接数据库"><a href="#连接数据库" class="headerlink" title="连接数据库"></a>连接数据库</h2><h3 id="使用-DriverManager-建立-Connection"><a href="#使用-DriverManager-建立-Connection" class="headerlink" title="使用 DriverManager 建立 Connection"></a>使用 DriverManager 建立 Connection</h3><p>安装数据库服务和导入相应的 jar 包后，即可使用 JDBC 连接到数据库，得到一个 Connection 对象。</p>
-<p>首先需要加载驱动程序，比如对于 mysql 数据库，可以使用如下代码加载驱动：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Class.forName(<span class="string">"com.mysql.jdbc.Driver"</span>);</span><br></pre></td></tr></table></figure>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/2018/03/03/JDBC邂逅——连接数据库与执行语句/#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
   </section>
 
   
@@ -1832,7 +1832,7 @@
               
                 <a href="/archives">
               
-                  <span class="site-state-item-count">15</span>
+                  <span class="site-state-item-count">16</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>
