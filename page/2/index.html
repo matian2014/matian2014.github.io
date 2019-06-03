@@ -848,7 +848,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2017/12/25/序列化Serializable与readResolve()方法/">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2017/12/25/java 序列化Serializable 的反射调用方法/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="name" content="马天">
@@ -867,7 +867,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2017/12/25/序列化Serializable与readResolve()方法/" itemprop="url">序列化Serializable与readResolve()方法</a></h1>
+                <a class="post-title-link" href="/2017/12/25/java 序列化Serializable 的反射调用方法/" itemprop="url">java 序列化Serializable 的反射调用方法</a></h1>
         
 
         <div class="post-meta">
@@ -940,11 +940,12 @@
 
       
         
-          <p>以一个简陋的单例模式举例：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">SerializableTest</span> <span class="keyword">implements</span> <span class="title">Serializable</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> SerializableTest t = <span class="keyword">new</span> SerializableTest();</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="title">SerializableTest</span><span class="params">()</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+          <p>java 序列化和反序列化过程中，留下了一些方法作为钩子，可以让我们自定义序列化和反序列化的流程和结果，主要是两组五个 Method，在要实现序列化的类中定义这些方法，运行中将通过反射调用。</p>
+<h2 id="writeObject-与-readObject"><a href="#writeObject-与-readObject" class="headerlink" title="writeObject() 与 readObject()"></a>writeObject() 与 readObject()</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">writeObject</span><span class="params">(java.io.ObjectOutputStream out)</span> <span class="keyword">throws</span> IOException</span></span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">readObject</span><span class="params">(java.io.ObjectInputStream in)</span> <span class="keyword">throws</span> IOException, ClassNotFoundException</span>;</span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">readObjectNoData</span><span class="params">()</span> <span class="keyword">throws</span> ObjectStreamException</span>;</span><br></pre></td></tr></table></figure>
+<p>writeObject 和 readObject 方法分别负责写入和读取对象状态，readObjectNoData 负责初始化对象状态。</p>
           <!--noindex-->
           <div class="post-button text-center">
-            <a class="btn" href="/2017/12/25/序列化Serializable与readResolve()方法/#more" rel="contents">
+            <a class="btn" href="/2017/12/25/java 序列化Serializable 的反射调用方法/#more" rel="contents">
               阅读全文 &raquo;
             </a>
           </div>
