@@ -87,7 +87,7 @@
 <meta property="og:site_name" content="马天">
 <meta property="og:description" content="要在服务器进行一些重复性的体力活，干脆简单看了下shell，下面记录一些内容，都是最基本的用法。 ‘’、``和””（反引号、单引号和双引号）以输出为例，’’内的原原本本的输出；``内的内容作为一个命令，先执行其中命令，再执行原命令，即代表命令替换；””内的内容，进行参数替换(如$name)和命令替换(如`echo abc`)。 比如下面代码 12echo &quot;`echo hello world`&quot;e">
 <meta property="og:locale" content="zh-Hans">
-<meta property="og:updated_time" content="2019-06-21T14:33:10.343Z">
+<meta property="og:updated_time" content="2019-06-21T14:34:26.326Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="bash shell ABC">
 <meta name="twitter:description" content="要在服务器进行一些重复性的体力活，干脆简单看了下shell，下面记录一些内容，都是最基本的用法。 ‘’、``和””（反引号、单引号和双引号）以输出为例，’’内的原原本本的输出；``内的内容作为一个命令，先执行其中命令，再执行原命令，即代表命令替换；””内的内容，进行参数替换(如$name)和命令替换(如`echo abc`)。 比如下面代码 12echo &quot;`echo hello world`&quot;e">
@@ -378,7 +378,7 @@
 <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">s=world</span><br><span class="line">if [[ $s =~ w.&#123;3&#125;d ]]</span><br><span class="line">then</span><br><span class="line">    echo $s</span><br><span class="line">fi</span><br></pre></td></tr></table></figure>
 <p>可以匹配成功，输出</p>
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">world</span><br></pre></td></tr></table></figure>
-<p>要注意，if 部分使用的是 “[[]]” 而不是 “[]”，“[[]]” 支持字符串的模式匹配，使用 “=~” 是可以使用正则表达式。</p>
+<p>要注意，if 部分使用的是 “[[]]” 而不是 “[]”，“[[]]” 支持字符串的模式匹配，使用 “=~” 时支持正则表达式。</p>
 <h3 id="read-与-echo"><a href="#read-与-echo" class="headerlink" title="read 与 echo"></a>read 与 echo</h3><p>read 读取一个输入到指定变量（不指定时，读取到环境变量REPLY）。read 命令指定 -p 参数时，可以输出一个提示。</p>
 <p>echo 作为输出，-e 指定输出的内容中转义字符生效（默认不进行转义），-n 指定不换行（echo 函数默认换行）</p>
 <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">echo -e "input name:\n"</span><br><span class="line">read name</span><br><span class="line">echo $name</span><br><span class="line"></span><br><span class="line">read</span><br><span class="line">echo -n $REPLY</span><br><span class="line"></span><br><span class="line">read -p "input host:" host</span><br><span class="line">echo $host</span><br></pre></td></tr></table></figure>
