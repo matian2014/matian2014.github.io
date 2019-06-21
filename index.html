@@ -943,7 +943,7 @@
       
         
           <p>要在服务器进行一些重复性的体力活，干脆简单看了下shell，下面记录一些内容，都是最基本的用法。</p>
-<h3 id="‘’、-和””"><a href="#‘’、-和””" class="headerlink" title="‘’、``和””"></a>‘’、``和””</h3><p>以输出为例，’’内的原原本本的输出；``内的内容作为一个命令，先执行其中命令，再执行原命令，即代表命令替换；””内的内容，进行参数替换(如$name)和命令替换(如`echo abc`)。</p>
+<h3 id="‘’、-和””（反引号、单引号和双引号）"><a href="#‘’、-和””（反引号、单引号和双引号）" class="headerlink" title="‘’、``和””（反引号、单引号和双引号）"></a>‘’、``和””（反引号、单引号和双引号）</h3><p>以输出为例，’’内的原原本本的输出；``内的内容作为一个命令，先执行其中命令，再执行原命令，即代表命令替换；””内的内容，进行参数替换(如$name)和命令替换(如`echo abc`)。</p>
 <p>比如下面代码</p>
 <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">echo "`echo hello world`"</span><br><span class="line">echo '`echo hello world`'</span><br></pre></td></tr></table></figure>
 <p>输出将是<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">hello world</span><br><span class="line">`echo hello world`</span><br></pre></td></tr></table></figure></p>
