@@ -252,7 +252,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/05/26/令人惊叹的 HashMap—数据结构与 hash 函数（java 8）/">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/06/29/ConcurrentHashMap 源码学习（java 7）/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="name" content="马天">
@@ -271,7 +271,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2019/05/26/令人惊叹的 HashMap—数据结构与 hash 函数（java 8）/" itemprop="url">令人惊叹的 HashMap—数据结构与 hash 函数（java 8）</a></h1>
+                <a class="post-title-link" href="/2019/06/29/ConcurrentHashMap 源码学习（java 7）/" itemprop="url">ConcurrentHashMap 源码学习（java 7）</a></h1>
         
 
         <div class="post-meta">
@@ -283,160 +283,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-05-26T21:16:14+08:00">
-                2019-05-26
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category">
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/java/" itemprop="url" rel="index">
-                    <span itemprop="name">java</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <p>看了下 java 8 中 HashMap 的源码，结合网上一些文章，大概明白了 HashMap 中几个一直很疑惑的地方。这里就记录一下 HashMap 的学习。</p>
-<h2 id="数据结构和一些参数的作用"><a href="#数据结构和一些参数的作用" class="headerlink" title="数据结构和一些参数的作用"></a>数据结构和一些参数的作用</h2><p>HashMap 的数据结构“平平无奇”，就是我们熟悉的“数组+链表”的方式（链地址法），并且在链表长度超过某个值（默认为 8）后，将链表转换为红黑树以提高效率。</p>
-<p>HashMap 存储数据的数组是：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">transient</span> Node&lt;K,V&gt;[] table;</span><br></pre></td></tr></table></figure>
-<p>也即一个 Node 数组，Node 实现 Entry 接口，每个 Node 存储一个键值对，如下：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">final</span> <span class="keyword">int</span> hash;</span><br><span class="line"><span class="keyword">final</span> K key;</span><br><span class="line">V value;</span><br><span class="line">Node&lt;K,V&gt; next;</span><br></pre></td></tr></table></figure>
-<p>其中，hash 是存储的 node 中的 key 的哈希值，key、value 即键和值，而 next 则显然是构建链表的，指向链表的下一个节点。</p>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/2019/05/26/令人惊叹的 HashMap—数据结构与 hash 函数（java 8）/#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/05/26/ConcurrentHashMap 源码学习（java 7）/">
-
-    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="马天">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="马天">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2019/05/26/ConcurrentHashMap 源码学习（java 7）/" itemprop="url">ConcurrentHashMap 源码学习（java 7）</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-05-26T21:16:14+08:00">
-                2019-05-26
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-06-29T10:30:55+08:00">
+                2019-06-29
               </time>
             
 
@@ -577,7 +425,7 @@
 <li>遍历链表，可以将链表加载到缓存，后续操作得到性能上的提升</li>
 <li>如果要插入的 key 不存在，预先创建一个 node，后续插入时直接使用</li>
 </ul>
-<p>scanAndLockForPut() 将在获取到锁后返回，使用头插法进行插入。与 HashMap 类似，某个 Segment 内的元素数量超过了 threshold 时，会进行扩容，将 table 数组容量扩容为原来的两倍，之后定位索引的方式与 HashMap 是一致的，可参看<a href=""> 令人惊叹的 HashMap—数据结构与 hash 函数（java 8）</a>。需要留意的是在遍历链表时，首先执行了这样一段代码：</p>
+<p>scanAndLockForPut() 将在获取到锁后返回，使用头插法进行插入。与 HashMap 类似，某个 Segment 内的元素数量超过了 threshold 时，会进行扩容，将 table 数组容量扩容为原来的两倍，之后定位索引的方式与 HashMap 是一致的，可参看<a href="http://matian.itprimer.cn/2019/05/26/%E4%BB%A4%E4%BA%BA%E6%83%8A%E5%8F%B9%E7%9A%84%20HashMap%E2%80%94%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%E4%B8%8E%20hash%20%E5%87%BD%E6%95%B0%EF%BC%88java%208%EF%BC%89/" target="_blank" rel="noopener"> 令人惊叹的 HashMap—数据结构与 hash 函数（java 8）</a>。需要留意的是在遍历链表时，首先执行了这样一段代码：</p>
 <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">HashEntry&lt;K,V&gt; lastRun = e;</span><br><span class="line"><span class="keyword">int</span> lastIdx = idx;</span><br><span class="line"><span class="keyword">for</span> (HashEntry&lt;K,V&gt; last = next;</span><br><span class="line">    last != <span class="keyword">null</span>;</span><br><span class="line">    last = last.next) &#123;</span><br><span class="line">    <span class="keyword">int</span> k = last.hash &amp; sizeMask;</span><br><span class="line">    <span class="keyword">if</span> (k != lastIdx) &#123;</span><br><span class="line">        lastIdx = k;</span><br><span class="line">        lastRun = last;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line">newTable[lastIdx] = lastRun;</span><br></pre></td></tr></table></figure>
 <p>这一段代码是用来“Reuse consecutive sequence at same slot”：在遍历中尝试找到一个节点 lastRun，从这一个节点开始的之后的所有节点，都不需要移动位置，这一个操作看似多余，但其实“Statistically, at the default threshold, only about one-sixth of them need cloning when a table doubles.”</p>
 <h2 id="remove"><a href="#remove" class="headerlink" title="remove"></a>remove</h2><p>首先调用 segmentForHash() 函数，segmentForHash() 中使用 UNSAFE.getObjectVolatile() 执行 volatile 读保证可见性，检查 key 应在的 Segment 是否为 null，如果是 null 那么一定没有存储这个 key。</p>
@@ -593,6 +441,158 @@
 <p>get 与 remove 并发时，如果移除的是头节点，get 的情况与以上 put 时类似；如果移除的是其他节点，而此时 get 还未到达该节点，仍然通过 volatile 语义保证可见性，如果 get 已经经过了这一节点，那么自然也不会对查询结果有影响。</p>
 
           
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/05/26/令人惊叹的 HashMap—数据结构与 hash 函数（java 8）/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="马天">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="马天">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2019/05/26/令人惊叹的 HashMap—数据结构与 hash 函数（java 8）/" itemprop="url">令人惊叹的 HashMap—数据结构与 hash 函数（java 8）</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-05-26T21:16:14+08:00">
+                2019-05-26
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/java/" itemprop="url" rel="index">
+                    <span itemprop="name">java</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <p>看了下 java 8 中 HashMap 的源码，结合网上一些文章，大概明白了 HashMap 中几个一直很疑惑的地方。这里就记录一下 HashMap 的学习。</p>
+<h2 id="数据结构和一些参数的作用"><a href="#数据结构和一些参数的作用" class="headerlink" title="数据结构和一些参数的作用"></a>数据结构和一些参数的作用</h2><p>HashMap 的数据结构“平平无奇”，就是我们熟悉的“数组+链表”的方式（链地址法），并且在链表长度超过某个值（默认为 8）后，将链表转换为红黑树以提高效率。</p>
+<p>HashMap 存储数据的数组是：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">transient</span> Node&lt;K,V&gt;[] table;</span><br></pre></td></tr></table></figure>
+<p>也即一个 Node 数组，Node 实现 Entry 接口，每个 Node 存储一个键值对，如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">final</span> <span class="keyword">int</span> hash;</span><br><span class="line"><span class="keyword">final</span> K key;</span><br><span class="line">V value;</span><br><span class="line">Node&lt;K,V&gt; next;</span><br></pre></td></tr></table></figure>
+<p>其中，hash 是存储的 node 中的 key 的哈希值，key、value 即键和值，而 next 则显然是构建链表的，指向链表的下一个节点。</p>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/2019/05/26/令人惊叹的 HashMap—数据结构与 hash 函数（java 8）/#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
         
       
     </div>
