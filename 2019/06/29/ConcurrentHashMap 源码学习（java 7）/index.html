@@ -87,7 +87,7 @@
 <meta property="og:site_name" content="马天">
 <meta property="og:description" content="ConcurrentHashMap 的实现比较复杂，里面涉及到的内容很多，而且有很多的性能优化的策略，想全部搞清楚比较困难，所以主要对里面感兴趣的并发的处理方面，相关的几个函数的实现看下，难免有理解不到位的地方，以后随时修改补充吧。 这里看的是 java 7 中的实现。 另外，推荐一篇文章，写的很详细： The Concurrency Of ConcurrentHashMap  涉及到的并发相关内">
 <meta property="og:locale" content="zh-Hans">
-<meta property="og:updated_time" content="2019-07-03T02:32:45.715Z">
+<meta property="og:updated_time" content="2019-07-03T03:37:29.989Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="ConcurrentHashMap 源码学习（java 7）">
 <meta name="twitter:description" content="ConcurrentHashMap 的实现比较复杂，里面涉及到的内容很多，而且有很多的性能优化的策略，想全部搞清楚比较困难，所以主要对里面感兴趣的并发的处理方面，相关的几个函数的实现看下，难免有理解不到位的地方，以后随时修改补充吧。 这里看的是 java 7 中的实现。 另外，推荐一篇文章，写的很详细： The Concurrency Of ConcurrentHashMap  涉及到的并发相关内">
@@ -378,6 +378,7 @@
 </tbody>
 </table>
 <p>举一个例子，对于 StoreLoad Barriers，有：Without StoreLoad barrier, a processor can write data only to its buffer without synchronizing with other processors (e.g. by writing to main memory), so another processor can then load the data either from its buffer or from main memory but will not get the most recent value.</p>
+ <a id="more"></a>
 <h3 id="volatile"><a href="#volatile" class="headerlink" title="volatile"></a>volatile</h3><p>通过内存屏障实现 volatile 的内存语义，具体来说：</p>
 <ul>
 <li>在每个 volatile 写操作的前面插入一个 StoreStore 屏障</li>
