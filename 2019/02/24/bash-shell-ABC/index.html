@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 6.3.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.jpg">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon.jpg">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"matian.itprimer.cn","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="要在服务器进行一些重复性的体力活，干脆简单看了下shell，下面记录一些内容，都是最基本的用法。 &#96;&#96;、’’和””（反引号、单引号和双引号）以输出为例，&#96;&#96;内的内容作为一个命令，先执行其中命令，再执行原命令，即代表命令替换；’’内的原原本本的输出；””内的内容，进行参数替换(如$name)和命令替换(如&#96;echo abc&#96;)。 比如下面代码 12echo &quot;&#96;echo hello wor">
+<meta property="og:type" content="article">
+<meta property="og:title" content="bash-shell-ABC">
+<meta property="og:url" content="http://matian.itprimer.cn/2019/02/24/bash-shell-ABC/index.html">
+<meta property="og:site_name" content="马天">
+<meta property="og:description" content="要在服务器进行一些重复性的体力活，干脆简单看了下shell，下面记录一些内容，都是最基本的用法。 &#96;&#96;、’’和””（反引号、单引号和双引号）以输出为例，&#96;&#96;内的内容作为一个命令，先执行其中命令，再执行原命令，即代表命令替换；’’内的原原本本的输出；””内的内容，进行参数替换(如$name)和命令替换(如&#96;echo abc&#96;)。 比如下面代码 12echo &quot;&#96;echo hello wor">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2019-02-24T09:04:31.000Z">
+<meta property="article:modified_time" content="2022-11-06T11:38:23.256Z">
+<meta property="article:author" content="马天">
+<meta property="article:tag" content="Shell">
+<meta property="article:tag" content="Linux">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://matian.itprimer.cn/2019/02/24/bash-shell-ABC/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>bash-shell-ABC | 马天</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">马天</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://matian.itprimer.cn/2019/02/24/bash-shell-ABC/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="马天">
+      <meta itemprop="description" content="程序猿">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="马天">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          bash-shell-ABC
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-02-24 17:04:31" itemprop="dateCreated datePublished" datetime="2019-02-24T17:04:31+08:00">2019-02-24</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Shell/" itemprop="url" rel="index"><span itemprop="name">Shell</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>要在服务器进行一些重复性的体力活，干脆简单看了下shell，下面记录一些内容，都是最基本的用法。</p>
+<h3 id="、’’和””（反引号、单引号和双引号）"><a href="#、’’和””（反引号、单引号和双引号）" class="headerlink" title="``、’’和””（反引号、单引号和双引号）"></a>``、’’和””（反引号、单引号和双引号）</h3><p>以输出为例，``内的内容作为一个命令，先执行其中命令，再执行原命令，即代表命令替换；’’内的原原本本的输出；””内的内容，进行参数替换(如$name)和命令替换(如`echo abc`)。</p>
+<p>比如下面代码</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">echo &quot;`echo hello world`&quot;</span><br><span class="line">echo &#x27;`echo hello world`&#x27;</span><br></pre></td></tr></table></figure>
+
+<p>输出将是</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">hello world</span><br><span class="line">`echo hello world`</span><br></pre></td></tr></table></figure>
+
+ <span id="more"></span>
+
+<h3 id="定义变量"><a href="#定义变量" class="headerlink" title="定义变量"></a>定义变量</h3><p>直接上例子，如：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">a = helloWorld</span><br><span class="line">echo $a</span><br></pre></td></tr></table></figure>
+
+<p>会报错，因为空格被认为是分隔符，定义变量等号两侧不能有空格。如：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">a=hello world</span><br><span class="line">echo $a</span><br></pre></td></tr></table></figure>
+
+<p>会报错，因为“hello world”中间的空格被认为是分隔符。可以使用引号将内容包含起来，比如</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">a=helloworld</span><br><span class="line">b=&quot;hello world&quot;</span><br><span class="line">echo $a</span><br><span class="line">echo $b</span><br></pre></td></tr></table></figure>
+
+<h3 id="定义函数"><a href="#定义函数" class="headerlink" title="定义函数"></a>定义函数</h3><p>函数要先定义再使用，定义和调用的格式如下：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">function  fun()&#123;</span><br><span class="line">    echo &quot;fun print&quot;$1 $2</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">fun hello world</span><br></pre></td></tr></table></figure>
+
+<p>输出</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">fun printhello world</span><br></pre></td></tr></table></figure>
+
+<p>echo  函数会将之后的内容按格式输出。</p>
+<p>$1 和 $2 代表传入的第一个参数、第二个参数，以此类推。</p>
+<h3 id="if"><a href="#if" class="headerlink" title="if"></a>if</h3><p>比如</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">s=matian</span><br><span class="line">if [ $s = &#x27;ma&#x27; ]</span><br><span class="line">then</span><br><span class="line">    echo $s</span><br><span class="line">fi</span><br></pre></td></tr></table></figure>
+
+<p>[] 内表达式两侧要有空格。</p>
+<p>&#x3D; 是比较字符是否相等，两侧要有空格。</p>
+<p>另有，运算符</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">非</span></span><br><span class="line">!</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">或</span></span><br><span class="line">-o</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">与</span></span><br><span class="line">-a</span><br></pre></td></tr></table></figure>
+
+<p>用于一个条件即一个“[]”内的多个条件之间的判断。</p>
+<p>运算符</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">或</span></span><br><span class="line">||</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">与</span></span><br><span class="line">&amp;&amp;</span><br></pre></td></tr></table></figure>
+<p>用于多个条件即多个“[]”之间的判断。</p>
+<p>即：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">if [ condition1 -a condition2 ]</span><br><span class="line">then</span><br><span class="line">    #.......</span><br><span class="line">fi</span><br><span class="line"></span><br><span class="line">if [ condition1 ] &amp;&amp; [ condition2 ]</span><br><span class="line">then</span><br><span class="line">    #.......</span><br><span class="line">fi</span><br></pre></td></tr></table></figure>
+
+<h3 id="for"><a href="#for" class="headerlink" title="for"></a>for</h3><p>比如</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">for file in `ls ~`</span><br><span class="line">do</span><br><span class="line">    echo $file</span><br><span class="line">done</span><br></pre></td></tr></table></figure>
+
+<h3 id="正则表达式"><a href="#正则表达式" class="headerlink" title="正则表达式"></a>正则表达式</h3><p>比如</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">s=world</span><br><span class="line">if [[ $s =~ w.&#123;3&#125;d ]]</span><br><span class="line">then</span><br><span class="line">    echo $s</span><br><span class="line">fi</span><br></pre></td></tr></table></figure>
+
+<p>可以匹配成功，输出</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">world</span><br></pre></td></tr></table></figure>
+
+<p>要注意，if 部分使用的是 “[[]]” 而不是 “[]”，“[[]]” 支持字符串的模式匹配，使用 “&#x3D;~” 时支持正则表达式。</p>
+<h3 id="read-与-echo"><a href="#read-与-echo" class="headerlink" title="read 与 echo"></a>read 与 echo</h3><p>read 读取一个输入到指定变量（不指定时，读取到环境变量REPLY）。read 命令指定 -p 参数时，可以输出一个提示。</p>
+<p>echo 作为输出，-e 指定输出的内容中转义字符生效（默认不进行转义），-n 指定不换行（echo 函数默认换行）</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">echo -e &quot;input name:\n&quot;</span><br><span class="line">read name</span><br><span class="line">echo $name</span><br><span class="line"></span><br><span class="line">read</span><br><span class="line">echo -n $REPLY</span><br><span class="line"></span><br><span class="line">read -p &quot;input host:&quot; host</span><br><span class="line">echo $host</span><br></pre></td></tr></table></figure>
+
+<p>三次输出依次输入”matian”、”reply”和”matian.itprimer.cn”，整个过程的输入和输出如下：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">input name:</span><br><span class="line"></span><br><span class="line">matian</span><br><span class="line">matian</span><br><span class="line">reply</span><br><span class="line">replyinput host:matian.itprimer.cn</span><br><span class="line">matian.itprimer.cn</span><br></pre></td></tr></table></figure>
+
+<h3 id="sed-命令"><a href="#sed-命令" class="headerlink" title="sed 命令"></a>sed 命令</h3><p>使用 sed 命令进行文本编辑，如使用 s 命令进行正则匹配和文本替换：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">sed &#x27;s/regexp/replacement/flags&#x27;</span><br><span class="line"></span><br><span class="line">sed &quot;s/regexp/replacement/flags&quot;</span><br></pre></td></tr></table></figure>
+
+<p>双引号的单引号的区别与上文相同，需要传入变量时使用双引号。</p>
+<p>假设有如下文件 test.xml：</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">load</span> <span class="attr">module</span>=<span class="string">&quot;mod_h26x&quot;</span>/&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">param</span> <span class="attr">name</span>=<span class="string">&quot;listen-ip&quot;</span> <span class="attr">value</span>=<span class="string">&quot;0.0.0.0&quot;</span>/&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">condition</span> <span class="attr">field</span>=<span class="string">&quot;$default_username&quot;</span> <span class="attr">expression</span>=<span class="string">&quot;test&quot;</span> <span class="attr">break</span>=<span class="string">&quot;never&quot;</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">param</span> <span class="attr">name</span>=<span class="string">&quot;listen-ip2&quot;</span> <span class="attr">value</span>=<span class="string">&quot;0.0.0.0&quot;</span>/&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">condition</span> <span class="attr">field</span>=<span class="string">&quot;$&#123;default_password&#125;&quot;</span> <span class="attr">expression</span>=<span class="string">&quot;1234&quot;</span> <span class="attr">break</span>=<span class="string">&quot;never&quot;</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>要将 listen-ip 的 value 修改为 127.0.0.1，可以使用 sed 命令进行文本替换，如下（注意双引号最后部分，没有传入 flags 时，最后仍然有一个 “&#x2F;”）：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sed -i &quot;s/&lt;param name=\&quot;listen-ip\&quot;.*/&lt;param name=\&quot;listen-ip\&quot; value=\&quot;127.0.0.1\&quot;\/&gt;/&quot; &quot;test.xml&quot;</span><br></pre></td></tr></table></figure>
+
+<p>修改后的 test.xml 变为：</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">load</span> <span class="attr">module</span>=<span class="string">&quot;mod_h26x&quot;</span>/&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">param</span> <span class="attr">name</span>=<span class="string">&quot;listen-ip&quot;</span> <span class="attr">value</span>=<span class="string">&quot;127.0.0.1&quot;</span>/&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">condition</span> <span class="attr">field</span>=<span class="string">&quot;$default_username&quot;</span> <span class="attr">expression</span>=<span class="string">&quot;test&quot;</span> <span class="attr">break</span>=<span class="string">&quot;never&quot;</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">param</span> <span class="attr">name</span>=<span class="string">&quot;listen-ip2&quot;</span> <span class="attr">value</span>=<span class="string">&quot;0.0.0.0&quot;</span>/&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">condition</span> <span class="attr">field</span>=<span class="string">&quot;$default_password&quot;</span> <span class="attr">expression</span>=<span class="string">&quot;1234&quot;</span> <span class="attr">break</span>=<span class="string">&quot;never&quot;</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>要注意，使用双引号时，内部的特殊字符需要转义，同时可以传入变量。如以下命令，匹配“$default_password”时需要对“$”进行转义，$password 作为变量传入</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">password=$1</span><br><span class="line">sed -i &quot;s/&lt;condition field=\&quot;\$default_password\&quot;.*/&lt;condition field=\&quot;\$default_password\&quot; expression=\&quot;$password\&quot; break=&quot;never&quot;\/&gt;/&quot; &quot;test.xml&quot;</span><br></pre></td></tr></table></figure>
+
+<p>调用以上脚本并传入参入“123456”，执行后 test.xml 变为</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">load</span> <span class="attr">module</span>=<span class="string">&quot;mod_h26x&quot;</span>/&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">param</span> <span class="attr">name</span>=<span class="string">&quot;listen-ip&quot;</span> <span class="attr">value</span>=<span class="string">&quot;127.0.0.1&quot;</span>/&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">condition</span> <span class="attr">field</span>=<span class="string">&quot;$default_username&quot;</span> <span class="attr">expression</span>=<span class="string">&quot;test&quot;</span> <span class="attr">break</span>=<span class="string">&quot;never&quot;</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">param</span> <span class="attr">name</span>=<span class="string">&quot;listen-ip2&quot;</span> <span class="attr">value</span>=<span class="string">&quot;0.0.0.0&quot;</span>/&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">condition</span> <span class="attr">field</span>=<span class="string">&quot;$default_password&quot;</span> <span class="attr">expression</span>=<span class="string">&quot;123456&quot;</span> <span class="attr">break</span>=<span class="string">never/</span>&gt;</span></span><br></pre></td></tr></table></figure>
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Shell/" rel="tag"># Shell</a>
+              <a href="/tags/Linux/" rel="tag"># Linux</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2019/02/25/Dockerfile-CMD%E4%B8%8EENTRYPOINT%E7%AE%80%E8%AE%B0/" rel="prev" title="Dockerfile-CMD与ENTRYPOINT简记">
+      <i class="fa fa-chevron-left"></i> Dockerfile-CMD与ENTRYPOINT简记
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2019/02/11/%E6%AD%A3%E5%88%99%E8%A1%A8%E8%BE%BE%E5%BC%8F%E8%AF%AD%E6%B3%95%E7%AC%94%E8%AE%B0%E5%8F%8A%E5%B8%B8%E7%94%A8%E8%A1%A8%E8%BE%BE%E5%BC%8F/" rel="next" title="正则表达式语法笔记及常用表达式">
+      正则表达式语法笔记及常用表达式 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E3%80%81%E2%80%99%E2%80%99%E5%92%8C%E2%80%9D%E2%80%9D%EF%BC%88%E5%8F%8D%E5%BC%95%E5%8F%B7%E3%80%81%E5%8D%95%E5%BC%95%E5%8F%B7%E5%92%8C%E5%8F%8C%E5%BC%95%E5%8F%B7%EF%BC%89"><span class="nav-number">1.</span> <span class="nav-text">&#96;&#96;、’’和””（反引号、单引号和双引号）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%9A%E4%B9%89%E5%8F%98%E9%87%8F"><span class="nav-number">2.</span> <span class="nav-text">定义变量</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%9A%E4%B9%89%E5%87%BD%E6%95%B0"><span class="nav-number">3.</span> <span class="nav-text">定义函数</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#if"><span class="nav-number">4.</span> <span class="nav-text">if</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#for"><span class="nav-number">5.</span> <span class="nav-text">for</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%AD%A3%E5%88%99%E8%A1%A8%E8%BE%BE%E5%BC%8F"><span class="nav-number">6.</span> <span class="nav-text">正则表达式</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#read-%E4%B8%8E-echo"><span class="nav-number">7.</span> <span class="nav-text">read 与 echo</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#sed-%E5%91%BD%E4%BB%A4"><span class="nav-number">8.</span> <span class="nav-text">sed 命令</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">马天</p>
+  <div class="site-description" itemprop="description">程序猿</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">25</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">10</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/matian2014" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;matian2014" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:matian1103@qq.com" title="E-Mail → mailto:matian1103@qq.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">马天</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

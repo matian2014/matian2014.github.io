@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 6.3.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.jpg">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon.jpg">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"matian.itprimer.cn","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="一直想了解一下 Spring AOP 的实现，所以看了下 java 动态代理(jdk 8)。 java Proxy 实现动态代理Proxy 原理是在运行期创建指定的被代理接口的一个实现类，这个类是 Proxy 的子类，并使用反射机制，对接口中声明的方法，用 InvocationHandler 转发函数调用。 Proxy 只能代理接口的实现，会被转发到从其原理不难看出，这是因为生成的代理类已经继承了">
+<meta property="og:type" content="article">
+<meta property="og:title" content="java动态代理：java-Proxy和CGLIB">
+<meta property="og:url" content="http://matian.itprimer.cn/2019/03/07/java%E5%8A%A8%E6%80%81%E4%BB%A3%E7%90%86%EF%BC%9Ajava-Proxy%E5%92%8CCGLIB/index.html">
+<meta property="og:site_name" content="马天">
+<meta property="og:description" content="一直想了解一下 Spring AOP 的实现，所以看了下 java 动态代理(jdk 8)。 java Proxy 实现动态代理Proxy 原理是在运行期创建指定的被代理接口的一个实现类，这个类是 Proxy 的子类，并使用反射机制，对接口中声明的方法，用 InvocationHandler 转发函数调用。 Proxy 只能代理接口的实现，会被转发到从其原理不难看出，这是因为生成的代理类已经继承了">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2019-03-07T02:03:18.000Z">
+<meta property="article:modified_time" content="2022-11-06T11:38:23.258Z">
+<meta property="article:author" content="马天">
+<meta property="article:tag" content="java">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://matian.itprimer.cn/2019/03/07/java%E5%8A%A8%E6%80%81%E4%BB%A3%E7%90%86%EF%BC%9Ajava-Proxy%E5%92%8CCGLIB/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>java动态代理：java-Proxy和CGLIB | 马天</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">马天</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://matian.itprimer.cn/2019/03/07/java%E5%8A%A8%E6%80%81%E4%BB%A3%E7%90%86%EF%BC%9Ajava-Proxy%E5%92%8CCGLIB/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="马天">
+      <meta itemprop="description" content="程序猿">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="马天">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          java动态代理：java-Proxy和CGLIB
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-03-07 10:03:18" itemprop="dateCreated datePublished" datetime="2019-03-07T10:03:18+08:00">2019-03-07</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/java/" itemprop="url" rel="index"><span itemprop="name">java</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>一直想了解一下 Spring AOP 的实现，所以看了下 java 动态代理(jdk 8)。</p>
+<h2 id="java-Proxy-实现动态代理"><a href="#java-Proxy-实现动态代理" class="headerlink" title="java Proxy 实现动态代理"></a>java Proxy 实现动态代理</h2><p>Proxy 原理是在运行期创建指定的被代理接口的一个实现类，这个类是 Proxy 的子类，并使用反射机制，对接口中声明的方法，用 InvocationHandler 转发函数调用。</p>
+<p>Proxy 只能代理接口的实现，会被转发到从其原理不难看出，这是因为生成的代理类已经继承了 Proxy，因为 java 单继承的机制，所以只能实现接口作为其代理。</p>
+ <span id="more"></span>
+
+<p>假设有接口 Target：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">interface</span> <span class="title class_">Target</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">void</span> <span class="title function_">fun</span><span class="params">(String s)</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>及其实现 RealTarget：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">RealTarget</span> <span class="keyword">implements</span> <span class="title class_">Target</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">fun</span><span class="params">(String s)</span> &#123;</span><br><span class="line">        System.out.println(<span class="built_in">this</span>.getClass().getSimpleName() + <span class="string">&quot; fun &quot;</span> + s);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">fun2</span><span class="params">(String s)</span> &#123;</span><br><span class="line">        System.out.println(<span class="built_in">this</span>.getClass().getSimpleName() + <span class="string">&quot; fun2 &quot;</span> + s);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>要使用 Proxy 对 RealTarget 动态代理，首先，创建一个类实现 InvocationHandler，作为方法调用的处理器：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">InvokeHandler</span> <span class="keyword">implements</span> <span class="title class_">InvocationHandler</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> Object proxiedObj;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="title function_">InvokeHandler</span><span class="params">(Object proxiedObj)</span> &#123;</span><br><span class="line">        <span class="built_in">this</span>.proxiedObj = proxiedObj;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> Object <span class="title function_">invoke</span><span class="params">(Object proxy, Method method, Object[] args)</span> <span class="keyword">throws</span> Throwable &#123;</span><br><span class="line">        System.out.println(<span class="built_in">this</span>.getClass().getSimpleName() + <span class="string">&quot; invoke &quot;</span> + Arrays.deepToString(args));</span><br><span class="line">        <span class="keyword">return</span> method.invoke(proxiedObj, args);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>然后可使用以下方式创建和使用代理：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line">    <span class="type">Target</span> <span class="variable">t</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">RealTarget</span>();</span><br><span class="line">    <span class="type">Target</span> <span class="variable">proxy</span> <span class="operator">=</span> (Target) Proxy.newProxyInstance(</span><br><span class="line">            Target.class.getClassLoader(),</span><br><span class="line">            <span class="keyword">new</span> <span class="title class_">Class</span>[]&#123;Target.class&#125;,</span><br><span class="line">            <span class="keyword">new</span> <span class="title class_">InvokeHandler</span>(t));</span><br><span class="line">    proxy.fun(<span class="string">&quot;ma&quot;</span>);</span><br><span class="line">    System.out.println(proxy.getClass());</span><br><span class="line">    System.out.println(Proxy.class.isAssignableFrom(proxy.getClass()));</span><br><span class="line">    System.out.println(proxy <span class="keyword">instanceof</span> RealTarget);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>以上代码的输出为：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">InvokeHandler invoke [ma]</span><br><span class="line">RealTarget fun ma</span><br><span class="line">class com.sun.proxy.$Proxy0</span><br><span class="line">true</span><br><span class="line">false</span><br></pre></td></tr></table></figure>
+
+<p>另，Proxy 会把从 Object 中继承的非 final 方法，包括 hashCode()、equals()、toString() 转发到 InvocationHandler，但是其他从 Object 中继承的 final 方法不会转发。</p>
+<p>运行时创建的代理类如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">class</span> <span class="title class_">$Proxy0</span> <span class="keyword">extends</span> <span class="title class_">Proxy</span> <span class="keyword">implements</span> <span class="title class_">Target</span> &#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> Method m1;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> Method m3;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> Method m2;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> Method m0;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> $Proxy0(InvocationHandler var1) <span class="keyword">throws</span>  &#123;</span><br><span class="line">        <span class="built_in">super</span>(var1);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">final</span> <span class="type">boolean</span> <span class="title function_">equals</span><span class="params">(Object var1)</span> <span class="keyword">throws</span>  &#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="keyword">return</span> (Boolean)<span class="built_in">super</span>.h.invoke(<span class="built_in">this</span>, m1, <span class="keyword">new</span> <span class="title class_">Object</span>[]&#123;var1&#125;);</span><br><span class="line">        &#125; <span class="keyword">catch</span> (RuntimeException | Error var3) &#123;</span><br><span class="line">            <span class="keyword">throw</span> var3;</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Throwable var4) &#123;</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">UndeclaredThrowableException</span>(var4);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">void</span> <span class="title function_">fun</span><span class="params">(String var1)</span> <span class="keyword">throws</span>  &#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="built_in">super</span>.h.invoke(<span class="built_in">this</span>, m3, <span class="keyword">new</span> <span class="title class_">Object</span>[]&#123;var1&#125;);</span><br><span class="line">        &#125; <span class="keyword">catch</span> (RuntimeException | Error var3) &#123;</span><br><span class="line">            <span class="keyword">throw</span> var3;</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Throwable var4) &#123;</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">UndeclaredThrowableException</span>(var4);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">final</span> String <span class="title function_">toString</span><span class="params">()</span> <span class="keyword">throws</span>  &#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="keyword">return</span> (String)<span class="built_in">super</span>.h.invoke(<span class="built_in">this</span>, m2, (Object[])<span class="literal">null</span>);</span><br><span class="line">        &#125; <span class="keyword">catch</span> (RuntimeException | Error var2) &#123;</span><br><span class="line">            <span class="keyword">throw</span> var2;</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Throwable var3) &#123;</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">UndeclaredThrowableException</span>(var3);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">final</span> <span class="type">int</span> <span class="title function_">hashCode</span><span class="params">()</span> <span class="keyword">throws</span>  &#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="keyword">return</span> (Integer)<span class="built_in">super</span>.h.invoke(<span class="built_in">this</span>, m0, (Object[])<span class="literal">null</span>);</span><br><span class="line">        &#125; <span class="keyword">catch</span> (RuntimeException | Error var2) &#123;</span><br><span class="line">            <span class="keyword">throw</span> var2;</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Throwable var3) &#123;</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">UndeclaredThrowableException</span>(var3);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">static</span> &#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            m1 = Class.forName(<span class="string">&quot;java.lang.Object&quot;</span>).getMethod(<span class="string">&quot;equals&quot;</span>, Class.forName(<span class="string">&quot;java.lang.Object&quot;</span>));</span><br><span class="line">            m3 = Class.forName(<span class="string">&quot;Target&quot;</span>).getMethod(<span class="string">&quot;fun&quot;</span>, Class.forName(<span class="string">&quot;java.lang.String&quot;</span>));</span><br><span class="line">            m2 = Class.forName(<span class="string">&quot;java.lang.Object&quot;</span>).getMethod(<span class="string">&quot;toString&quot;</span>);</span><br><span class="line">            m0 = Class.forName(<span class="string">&quot;java.lang.Object&quot;</span>).getMethod(<span class="string">&quot;hashCode&quot;</span>);</span><br><span class="line">        &#125; <span class="keyword">catch</span> (NoSuchMethodException var2) &#123;</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">NoSuchMethodError</span>(var2.getMessage());</span><br><span class="line">        &#125; <span class="keyword">catch</span> (ClassNotFoundException var3) &#123;</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">NoClassDefFoundError</span>(var3.getMessage());</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>了解了其原理，不难理解这种情况：假设 fun() 和 fun2() 都是实现的接口中的方法，如果在 fun() 的实现中调用了 fun2()，因为实际是用 this 即被代理类引用来调用的，所以这一 fun2() 的调用不会代理。</p>
+<h2 id="CGLIB-实现动态代理"><a href="#CGLIB-实现动态代理" class="headerlink" title="CGLIB 实现动态代理"></a>CGLIB 实现动态代理</h2><p>以上对 jdk Proxy 的了解可以知道，Proxy 只能代理接口的实现，想对别的类动态代理，可以用 CGLIB 实现。</p>
+<p>CGLIB 的原理是动态创建一个被代理类的子类，覆盖其方法，实现代理。可以实现 MethodInterceptor 接口，作用与 jdk Proxy 的 InvocationHandler 类似。如果不为代理设置 MethodInterceptor，将默认调用代理类的父类（被代理类）的方法。</p>
+<p>显然，CGLIB 对于 final 类无法代理；类中的 final 方法无法代理。</p>
+<p>而因为 CGLIB 是通过继承被代理类来实现动态代理的，如果在 MethodInterceptor 中使用代理对象调用方法，由于多态，那么在被代理类内部的方法的相互调用，也是经过代理对象来调用的，都会被代理。</p>
+<p>CGLIB 的使用可见下例。</p>
+<p>首先假设有被代理类 RealSubject：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> com.tianma.resTest;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">RealSubject</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">fun</span><span class="params">(String s)</span> &#123;</span><br><span class="line">        System.out.println(<span class="built_in">this</span>.getClass().getSimpleName() + <span class="string">&quot; fun &quot;</span> + s);</span><br><span class="line">        fun2();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">fun2</span><span class="params">()</span> &#123;</span><br><span class="line">        System.out.println(<span class="built_in">this</span>.getClass().getSimpleName() + <span class="string">&quot; fun2&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">void</span> <span class="title function_">fun3</span><span class="params">(String s)</span> &#123;</span><br><span class="line">        System.out.println(<span class="built_in">this</span>.getClass().getSimpleName() + <span class="string">&quot; fun3 &quot;</span> + s);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>定义 MethodInterceptor 的实现，其中，第一个参数 o，是代理对象的实例，methodProxy.invokeSuper(o, objects)，是使用代理对象调用了父类的方法。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">MyMethodInterceptor</span> <span class="keyword">implements</span> <span class="title class_">MethodInterceptor</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> Object <span class="title function_">intercept</span><span class="params">(Object o, Method method, Object[] objects, MethodProxy methodProxy)</span> <span class="keyword">throws</span> Throwable &#123;</span><br><span class="line">        System.out.println(o.getClass().getSimpleName());</span><br><span class="line">        System.out.println(method.toString());</span><br><span class="line">        System.out.println(methodProxy.getSignature().toString());</span><br><span class="line">        <span class="keyword">return</span> methodProxy.invokeSuper(o, objects);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>然后可以通过以下方式来创建和使用代理：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">Enhancer</span> <span class="variable">enhancer</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Enhancer</span>();</span><br><span class="line">enhancer.setSuperclass(RealSubject.class);</span><br><span class="line">enhancer.setCallback(<span class="keyword">new</span> <span class="title class_">MyMethodInterceptor</span>());</span><br><span class="line"></span><br><span class="line"><span class="type">RealSubject</span> <span class="variable">subject</span> <span class="operator">=</span> (RealSubject) enhancer.create();</span><br><span class="line">System.out.println(<span class="string">&quot;----------------------&quot;</span>);</span><br><span class="line"></span><br><span class="line">subject.fun(<span class="string">&quot;ma&quot;</span>);</span><br><span class="line">System.out.println(<span class="string">&quot;---------&quot;</span>);</span><br><span class="line">subject.fun2();</span><br><span class="line">System.out.println(<span class="string">&quot;---------&quot;</span>);</span><br><span class="line">subject.fun3(<span class="string">&quot;tian&quot;</span>);</span><br></pre></td></tr></table></figure>
+
+<p>其输出为：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">----------------------</span><br><span class="line">RealSubject$$EnhancerByCGLIB$$9e951628</span><br><span class="line">public void com.tianma.resTest.RealSubject.fun(java.lang.String)</span><br><span class="line">fun(Ljava/lang/String;)V</span><br><span class="line">RealSubject$$EnhancerByCGLIB$$9e951628 fun ma</span><br><span class="line">RealSubject$$EnhancerByCGLIB$$9e951628</span><br><span class="line">public void com.tianma.resTest.RealSubject.fun2()</span><br><span class="line">fun2()V</span><br><span class="line">RealSubject$$EnhancerByCGLIB$$9e951628 fun2</span><br><span class="line">---------</span><br><span class="line">RealSubject$$EnhancerByCGLIB$$9e951628</span><br><span class="line">public void com.tianma.resTest.RealSubject.fun2()</span><br><span class="line">fun2()V</span><br><span class="line">RealSubject$$EnhancerByCGLIB$$9e951628 fun2</span><br><span class="line">---------</span><br><span class="line">RealSubject$$EnhancerByCGLIB$$9e951628 fun3 tian</span><br></pre></td></tr></table></figure>
+
+<p>使用 java HSDB 工具可以查看 CGLIB 运行时生成的字节码，可以看下 fun() 部分的代码：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">RealSubject$$EnhancerByCGLIB$$9e951628</span> <span class="keyword">extends</span> <span class="title class_">RealSubject</span> <span class="keyword">implements</span> <span class="title class_">Factory</span> &#123;</span><br><span class="line"></span><br><span class="line">    ......</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">void</span> <span class="title function_">fun</span><span class="params">(String var1)</span> &#123;</span><br><span class="line">        <span class="type">MethodInterceptor</span> <span class="variable">var10000</span> <span class="operator">=</span> <span class="built_in">this</span>.CGLIB$CALLBACK_0;</span><br><span class="line">        <span class="keyword">if</span> (var10000 == <span class="literal">null</span>) &#123;</span><br><span class="line">            CGLIB$BIND_CALLBACKS(<span class="built_in">this</span>);</span><br><span class="line">            var10000 = <span class="built_in">this</span>.CGLIB$CALLBACK_0;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (var10000 != <span class="literal">null</span>) &#123;</span><br><span class="line">            var10000.intercept(<span class="built_in">this</span>, CGLIB$fun$<span class="number">0</span>$Method, <span class="keyword">new</span> <span class="title class_">Object</span>[]&#123;var1&#125;, CGLIB$fun$<span class="number">0</span>$Proxy);</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="built_in">super</span>.fun(var1);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    ......</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>可见，被代理类中的可以被 override 的方法（非 private、非 final、非 static），被动态创建的子类覆盖，我们可以实现 MethodInterceptor 接口对调用进行自定义处理，如果不设置 MethodInterceptor，将默认调用代理类的父类（被代理类）的方法。</p>
+<p>同时，从被反编译的代码中可以看到，Object 类中可 override 的方法：hashCode()、toString()、equals()、clone() 也可以代理。</p>
+<h2 id="java-查看运行时动态创建的-class"><a href="#java-查看运行时动态创建的-class" class="headerlink" title="java 查看运行时动态创建的 class"></a>java 查看运行时动态创建的 class</h2><h3 id="使用-java-的-HSDB-工具"><a href="#使用-java-的-HSDB-工具" class="headerlink" title="使用 java 的 HSDB 工具"></a>使用 java 的 HSDB 工具</h3><p>简记下查看动态生成类的方式：</p>
+<ol>
+<li>启动项目，使用断点等使不要退出</li>
+<li>cmd 执行 java -classpath “%JAVA_HOME%&#x2F;lib&#x2F;sa-jdi.jar” sun.jvm.hotspot.HSDB，启动 HSDB</li>
+<li>cmd 执行 jps，查看要调试的项目的 id</li>
+<li>HSDB 中 attach 到此 id 的项目，查看类，搜索要查看的类的类名即可搜到</li>
+<li>create，然后 class 会被保存到执行 2 中命令的目录中</li>
+</ol>
+<p>HSDB 工具还可以查看运行时 Thread 等信息。</p>
+<h3 id="使用-ProxyGenerator-生成和保存-java-Proxy-动态生成的-class-文件"><a href="#使用-ProxyGenerator-生成和保存-java-Proxy-动态生成的-class-文件" class="headerlink" title="使用 ProxyGenerator 生成和保存 java Proxy 动态生成的 class 文件"></a>使用 ProxyGenerator 生成和保存 java Proxy 动态生成的 class 文件</h3><p>使用下面代码，我们可以用 ProxyGenerator 生成 class 文件：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 获取代理类的字节码</span></span><br><span class="line"><span class="type">byte</span>[] classFile = ProxyGenerator.generateProxyClass(<span class="string">&quot;$Proxy0&quot;</span>, RealTarget.class.getInterfaces());</span><br><span class="line"></span><br><span class="line"><span class="type">FileOutputStream</span> <span class="variable">out</span> <span class="operator">=</span> <span class="literal">null</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">try</span> &#123;</span><br><span class="line">    out = <span class="keyword">new</span> <span class="title class_">FileOutputStream</span>(path);</span><br><span class="line">    out.write(classFile);</span><br><span class="line">    out.flush();</span><br><span class="line">&#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">    e.printStackTrace();</span><br><span class="line">&#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        out.close();</span><br><span class="line">        &#125; <span class="keyword">catch</span> (IOException e) &#123;</span><br><span class="line">            e.printStackTrace();</span><br><span class="line">        &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/java/" rel="tag"># java</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2019/03/19/Servlet%20filter%E8%AE%B0%E5%BD%95/" rel="prev" title="Servlet filter记录">
+      <i class="fa fa-chevron-left"></i> Servlet filter记录
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2019/02/25/Dockerfile-CMD%E4%B8%8EENTRYPOINT%E7%AE%80%E8%AE%B0/" rel="next" title="Dockerfile-CMD与ENTRYPOINT简记">
+      Dockerfile-CMD与ENTRYPOINT简记 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#java-Proxy-%E5%AE%9E%E7%8E%B0%E5%8A%A8%E6%80%81%E4%BB%A3%E7%90%86"><span class="nav-number">1.</span> <span class="nav-text">java Proxy 实现动态代理</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#CGLIB-%E5%AE%9E%E7%8E%B0%E5%8A%A8%E6%80%81%E4%BB%A3%E7%90%86"><span class="nav-number">2.</span> <span class="nav-text">CGLIB 实现动态代理</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#java-%E6%9F%A5%E7%9C%8B%E8%BF%90%E8%A1%8C%E6%97%B6%E5%8A%A8%E6%80%81%E5%88%9B%E5%BB%BA%E7%9A%84-class"><span class="nav-number">3.</span> <span class="nav-text">java 查看运行时动态创建的 class</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BD%BF%E7%94%A8-java-%E7%9A%84-HSDB-%E5%B7%A5%E5%85%B7"><span class="nav-number">3.1.</span> <span class="nav-text">使用 java 的 HSDB 工具</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BD%BF%E7%94%A8-ProxyGenerator-%E7%94%9F%E6%88%90%E5%92%8C%E4%BF%9D%E5%AD%98-java-Proxy-%E5%8A%A8%E6%80%81%E7%94%9F%E6%88%90%E7%9A%84-class-%E6%96%87%E4%BB%B6"><span class="nav-number">3.2.</span> <span class="nav-text">使用 ProxyGenerator 生成和保存 java Proxy 动态生成的 class 文件</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">马天</p>
+  <div class="site-description" itemprop="description">程序猿</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">25</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">10</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/matian2014" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;matian2014" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:matian1103@qq.com" title="E-Mail → mailto:matian1103@qq.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">马天</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

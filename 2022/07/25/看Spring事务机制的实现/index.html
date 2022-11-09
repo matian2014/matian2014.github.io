@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 6.3.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.jpg">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon.jpg">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"matian.itprimer.cn","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="这几天给项目整合动态多数据源，遇到了事务和connection切换相关的问题，发现对Spring事务这块的代码没有仔细看过，就大体看下了Spring事务管理的实现 以下实现来自于sping-boot 2.6.4（spring-core 5.3.16） 这篇文章曾经发在掘金社区，是本人自己发布。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="看Spring事务机制的实现">
+<meta property="og:url" content="http://matian.itprimer.cn/2022/07/25/%E7%9C%8BSpring%E4%BA%8B%E5%8A%A1%E6%9C%BA%E5%88%B6%E7%9A%84%E5%AE%9E%E7%8E%B0/index.html">
+<meta property="og:site_name" content="马天">
+<meta property="og:description" content="这几天给项目整合动态多数据源，遇到了事务和connection切换相关的问题，发现对Spring事务这块的代码没有仔细看过，就大体看下了Spring事务管理的实现 以下实现来自于sping-boot 2.6.4（spring-core 5.3.16） 这篇文章曾经发在掘金社区，是本人自己发布。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/396075cd706e467c89a3291e097c04e0~tplv-k3u1fbpfcp-watermark.image">
+<meta property="article:published_time" content="2022-07-25T12:14:18.000Z">
+<meta property="article:modified_time" content="2022-11-06T11:45:52.828Z">
+<meta property="article:author" content="马天">
+<meta property="article:tag" content="java">
+<meta property="article:tag" content="Spring Boot">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/396075cd706e467c89a3291e097c04e0~tplv-k3u1fbpfcp-watermark.image">
+
+<link rel="canonical" href="http://matian.itprimer.cn/2022/07/25/%E7%9C%8BSpring%E4%BA%8B%E5%8A%A1%E6%9C%BA%E5%88%B6%E7%9A%84%E5%AE%9E%E7%8E%B0/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>看Spring事务机制的实现 | 马天</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">马天</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://matian.itprimer.cn/2022/07/25/%E7%9C%8BSpring%E4%BA%8B%E5%8A%A1%E6%9C%BA%E5%88%B6%E7%9A%84%E5%AE%9E%E7%8E%B0/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="马天">
+      <meta itemprop="description" content="程序猿">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="马天">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          看Spring事务机制的实现
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2022-07-25 20:14:18" itemprop="dateCreated datePublished" datetime="2022-07-25T20:14:18+08:00">2022-07-25</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Spring/" itemprop="url" rel="index"><span itemprop="name">Spring</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>这几天给项目整合动态多数据源，遇到了事务和connection切换相关的问题，发现对Spring事务这块的代码没有仔细看过，就大体看下了Spring事务管理的实现</p>
+<p>以下实现来自于sping-boot 2.6.4（spring-core 5.3.16）</p>
+<p>这篇文章曾经发在掘金社区，是本人自己发布。</p>
+<span id="more"></span>
+
+<h1 id="面向应用层的api"><a href="#面向应用层的api" class="headerlink" title="面向应用层的api"></a>面向应用层的api</h1><p>spring提供的操作事务的api：</p>
+<ul>
+<li>声明式事务，比如最常用的@Transactional注解</li>
+<li>使用TransactionManager、TransactionDefinition等类手动处理事务的开始&#x2F;提交&#x2F;回滚等操作</li>
+<li>使用TransactionTemplate处理事务</li>
+</ul>
+<p>其中，TransactionTemplate的使用比较简单，提供了execute()方法用于执行需要在事务进行的操作，对TransactionManager、TransactionDefinition等类的操作都封装在了TransactionTemplate内部</p>
+<p>下面将对比手动处理事务和声明式事务的代码</p>
+<h2 id="使用JdbcTemplate手动操作事务"><a href="#使用JdbcTemplate手动操作事务" class="headerlink" title="使用JdbcTemplate手动操作事务"></a>使用JdbcTemplate手动操作事务</h2><p>JdbcTemplate是spring封装的JDBC操作工具类。可以看到，JdbcTemplate依靠DataSourceUtils类来获取到事务关联的connection完成数据库操作。当用户代码中开启了事务时，JdbcTemplate使用的这一connection即事务关联的connection</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// JdbcTemplate类核心的execute函数</span></span><br><span class="line"><span class="keyword">public</span> &lt;T&gt; T <span class="title function_">execute</span><span class="params">(ConnectionCallback&lt;T&gt; action)</span> <span class="keyword">throws</span> DataAccessException &#123;</span><br><span class="line">		Assert.notNull(action, <span class="string">&quot;Callback object must not be null&quot;</span>);</span><br><span class="line"></span><br><span class="line">		<span class="type">Connection</span> <span class="variable">con</span> <span class="operator">=</span> DataSourceUtils.getConnection(obtainDataSource());</span><br><span class="line">		<span class="keyword">try</span> &#123;</span><br><span class="line">			<span class="comment">// Create close-suppressing Connection proxy, also preparing returned Statements.</span></span><br><span class="line">			<span class="type">Connection</span> <span class="variable">conToUse</span> <span class="operator">=</span> createConnectionProxy(con);</span><br><span class="line">			<span class="keyword">return</span> action.doInConnection(conToUse);</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">catch</span> (SQLException ex) &#123;</span><br><span class="line">			<span class="comment">// Release Connection early, to avoid potential connection pool deadlock</span></span><br><span class="line">			<span class="comment">// in the case when the exception translator hasn&#x27;t been initialized yet.</span></span><br><span class="line">			<span class="type">String</span> <span class="variable">sql</span> <span class="operator">=</span> getSql(action);</span><br><span class="line">			DataSourceUtils.releaseConnection(con, getDataSource());</span><br><span class="line">			con = <span class="literal">null</span>;</span><br><span class="line">			<span class="keyword">throw</span> translateException(<span class="string">&quot;ConnectionCallback&quot;</span>, sql, ex);</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">finally</span> &#123;</span><br><span class="line">			DataSourceUtils.releaseConnection(con, getDataSource());</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br></pre></td></tr></table></figure>
+
+<p>以下伪代码开启了传播级别为PROPAGATION_REQUIRED的事务，并实现了发生YourException异常时回滚事务</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 使用 JdbcTemplate 手动处理事务操作的伪代码</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 通过TransactionDefinition配置事务传播属性、隔离级别等</span></span><br><span class="line"><span class="type">TransactionDefinition</span> <span class="variable">yourTxDefinition</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">DefaultTransactionDefinition</span>(TransactionDefinition.PROPAGATION_REQUIRED);</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment">// 使用TransactionManager手动开启事务</span></span><br><span class="line"><span class="type">TransactionStatus</span> <span class="variable">status</span> <span class="operator">=</span> yourTxManagerBean.getTransaction(definition);</span><br><span class="line"></span><br><span class="line"><span class="keyword">try</span> &#123;</span><br><span class="line">    <span class="comment">// 执行sql</span></span><br><span class="line">    template.update(yourSql1);</span><br><span class="line">    template.update(yourSql2);</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 提交事务</span></span><br><span class="line">    manager.commit(status);</span><br><span class="line">&#125; <span class="keyword">catch</span> (YourException e) &#123;</span><br><span class="line">    e.printStackTrace();</span><br><span class="line">    <span class="comment">// 出现异常时会滚</span></span><br><span class="line">    manager.rollback(status);</span><br><span class="line">&#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">    <span class="comment">// do something</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h2 id="使用注解-Transactional声明式处理事务"><a href="#使用注解-Transactional声明式处理事务" class="headerlink" title="使用注解@Transactional声明式处理事务"></a>使用注解@Transactional声明式处理事务</h2><p>spring提供了@Transactional注解，spring内部自动通过AnnotationTransactionAttributeSource解析@Transactional注解上指定的事务属性；或者通过全局事务的方式，以NameMatchTransactionAttributeSource等方式定义interceptor的匹配规则，并为这些方法指定使用的TransactionAttribute，可全局配置事务</p>
+<p>两种方式可以通过spring interceptor自动处理事务，具体的实现类为TransactionInterceptor——不过，这个类中只进行了基本的配置操作，为了方便扩展，aop操作事务的默认实现定义在了其父类TransactionAspectSupport中，核心的函数为：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 以下方法只保留了关键流程</span></span><br><span class="line"><span class="comment">// TransactionAspectSupport切面实现自动化事务处理的方法</span></span><br><span class="line"><span class="keyword">protected</span> Object <span class="title function_">invokeWithinTransaction</span><span class="params">(Method method, <span class="meta">@Nullable</span> Class&lt;?&gt; targetClass,</span></span><br><span class="line"><span class="params">			<span class="keyword">final</span> InvocationCallback invocation)</span> <span class="keyword">throws</span> Throwable &#123;</span><br><span class="line"></span><br><span class="line">		<span class="comment">// 获取事务配置、事务管理器对象</span></span><br><span class="line">		<span class="type">TransactionAttributeSource</span> <span class="variable">tas</span> <span class="operator">=</span> getTransactionAttributeSource();</span><br><span class="line">		<span class="keyword">final</span> <span class="type">TransactionAttribute</span> <span class="variable">txAttr</span> <span class="operator">=</span> (tas != <span class="literal">null</span> ? tas.getTransactionAttribute(method, targetClass) : <span class="literal">null</span>);</span><br><span class="line">		<span class="keyword">final</span> <span class="type">TransactionManager</span> <span class="variable">tm</span> <span class="operator">=</span> determineTransactionManager(txAttr);</span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> (<span class="built_in">this</span>.reactiveAdapterRegistry != <span class="literal">null</span> &amp;&amp; tm <span class="keyword">instanceof</span> ReactiveTransactionManager) &#123;</span><br><span class="line">			<span class="comment">// 响应式事务处理的操作</span></span><br><span class="line">                        <span class="comment">// ...</span></span><br><span class="line">		&#125;</span><br><span class="line">                </span><br><span class="line">                <span class="comment">// 命令式事务处理</span></span><br><span class="line">		<span class="type">PlatformTransactionManager</span> <span class="variable">ptm</span> <span class="operator">=</span> asPlatformTransactionManager(tm);</span><br><span class="line">		<span class="keyword">final</span> <span class="type">String</span> <span class="variable">joinpointIdentification</span> <span class="operator">=</span> methodIdentification(method, targetClass, txAttr);</span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> (txAttr == <span class="literal">null</span> || !(ptm <span class="keyword">instanceof</span> CallbackPreferringPlatformTransactionManager)) &#123;</span><br><span class="line">			<span class="comment">// Standard transaction demarcation with getTransaction and commit/rollback calls.</span></span><br><span class="line">                        <span class="comment">// 请求transactionManager创建并开启事务，TransactionManager将会根据事务传播属性配置确定新建事务或继续使用当前事务等操作</span></span><br><span class="line">			<span class="type">TransactionInfo</span> <span class="variable">txInfo</span> <span class="operator">=</span> createTransactionIfNecessary(ptm, txAttr, joinpointIdentification);</span><br><span class="line"></span><br><span class="line">			Object retVal;</span><br><span class="line">			<span class="keyword">try</span> &#123;</span><br><span class="line">                                <span class="comment">// 调用方法</span></span><br><span class="line">				retVal = invocation.proceedWithInvocation();</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">catch</span> (Throwable ex) &#123;</span><br><span class="line">				<span class="comment">// 方法中抛出异常时，根据事务配置的rollbackOn属性，操作事务提交或回滚</span></span><br><span class="line">                                <span class="comment">// 异常并不会被捕获，而是继续抛出，方法结束</span></span><br><span class="line">				completeTransactionAfterThrowing(txInfo, ex);</span><br><span class="line">				<span class="keyword">throw</span> ex;</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">finally</span> &#123;</span><br><span class="line">				cleanupTransactionInfo(txInfo);</span><br><span class="line">			&#125;</span><br><span class="line"></span><br><span class="line">                        <span class="comment">// 方法未抛出异常的情况，事务正常提交</span></span><br><span class="line">			commitTransactionAfterReturning(txInfo);</span><br><span class="line">			<span class="keyword">return</span> retVal;</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+
+<p>不难发现，TransactionAspectSupport的处理流程与上文实现的使用JdbcTemplate手动处理事务操作的流程是一致的——spring通过aop的方式，为我们自动完成了事务的操作，使得只需要声明一个@Transactional注解就可以使用事务，为了实现与上文JdbcTemplate手动处理事务操作代码相同的效果，只需要：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Transactional(propagation = Propagation.REQUIRED,rollbackFor = YourException.class)</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">yourSqlExecFunction</span><span class="params">()</span>&#123;</span><br><span class="line">    <span class="comment">//...</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h1 id="多事务切换与传播机制的实现"><a href="#多事务切换与传播机制的实现" class="headerlink" title="多事务切换与传播机制的实现"></a>多事务切换与传播机制的实现</h1><p>使用面向应用的api，可以方便的使用事务。在上面的示例代码以及TransactionAspectSupport的核心处理代码中，只包含了当前的当个事务的处理逻辑，并不涉及spring提供的多个事务之间的传播机制和事务切换。这一部分已经由spring事务管理器做了封装。</p>
+<p>事务管理有两套实现，比如核心的事务管理器：</p>
+<ul>
+<li>PlatformTransactionManager，命令式的实现（imperative）</li>
+<li>ReactiveTransactionManager，响应式的实现（reactive）</li>
+</ul>
+<p>这里只看PlatformTransactionManager在单数据源下的实现</p>
+<h2 id="事务管理关键的类"><a href="#事务管理关键的类" class="headerlink" title="事务管理关键的类"></a>事务管理关键的类</h2><h3 id="事务管理器AbstractPlatformTransactionManager"><a href="#事务管理器AbstractPlatformTransactionManager" class="headerlink" title="事务管理器AbstractPlatformTransactionManager"></a>事务管理器AbstractPlatformTransactionManager</h3><p>Abstract base class that implements Spring’s standard transaction workflow, serving as basis for concrete platform transaction managers。是事务管理器的抽象实现，定义了核心的事务处理流程的函数接口，包括事务各状态处理的关键的函数，如begin(),commit(),rollback()</p>
+<p>需要说明的是，这里提到的事务，应当区分出是逻辑上的事务还是真正关联到数据库connection的事务：</p>
+<ul>
+<li>逻辑上的事务，这个称呼可能不太准确，应当称之为事务状态——比如，方法A、B都声明了开启事务；A中调用了B；A和B的事务隔离级别配置不同。那么，两个函数关联的事务状态是不同的，具有不同的事务属性，也可能关联到了不同的数据库事务资源。事务状态使用TransactionStatus类记录，由AbstractPlatformTransactionManager负责管理</li>
+<li>实际的事务，数据库connection上开启的事务，关联到实际的数据库资源</li>
+</ul>
+<p>AbstractPlatformTransactionManager只作为一个基础的模版类，负责管理事务状态（在AbstractPlatformTransactionManager类源码中完全没有出现connection）。作为实现事务传播机制的核心类，存在多个事务的切换时，能否切换、是否开启新事务、是否挂起&#x2F;恢复、事务状态的保存，都已经由AbstractPlatformTransactionManager封装。</p>
+<p>对于多个事务之间的切换，已经由AbstractPlatformTransactionManager完成了事务状态的处理，需要真正操作数据库事务资源的步骤，则留出函数，供子类面向不同的datasource扩展实现具体的事务资源(datasource,connection等)的管理和操作。比如，新建一个connection并操作connection开启事务（set autocommit &#x3D; false）；操作connection提交&#x2F;回滚一个数据库事务</p>
+<p>AbstractPlatformTransactionManager的子类：</p>
+<ul>
+<li>DataSourceTransactionManager，面向单个jdbc数据源的实现</li>
+<li>JtaTransactionManager，JTA的实现，即多数据源的分布式事务处理</li>
+</ul>
+<h4 id="事务状态TransactionStatus"><a href="#事务状态TransactionStatus" class="headerlink" title="事务状态TransactionStatus"></a>事务状态TransactionStatus</h4><p>事务状态的抽象接口，AbstractPlatformTransactionManager使用的事务状态类，基本实现为DefaultTransactionStatus，关键字段：</p>
+<ul>
+<li>Object transaction，事务对象，比如在DataSourceTransactionManager实现中使用transaction存储事务关联的数据库connection</li>
+<li>boolean newTransaction，当前是否是新开启的事务</li>
+<li>boolean newSynchronization，是否是新开始同步的事务</li>
+<li>boolean readOnly，事务是否是readonly的</li>
+<li>Object suspendedResources，记录当前事务之前挂起的事务对象，用于suspend后的resume恢复</li>
+</ul>
+<p>其中关键的是suspendedResources，用于实现事务的suspend&#x2F;resume</p>
+<h3 id="事务同步管理器TransactionSynchronizationManager"><a href="#事务同步管理器TransactionSynchronizationManager" class="headerlink" title="事务同步管理器TransactionSynchronizationManager"></a>事务同步管理器TransactionSynchronizationManager</h3><ol>
+<li>提供了基于threadlocal的事务状态、事务资源对象存储。将事务状态、事务资源绑定到threadlocal，从而在事务处理的过程中不需要考虑多线程之间的同步问题</li>
+<li>可存储事务同步器TransactionSynchronization实例，其中提供了事务生命周期中部分状态的回调，比如：beforeCommit(boolean readOnly)，afterCompletion(int status)</li>
+</ol>
+<p>对于TransactionSynchronizationManager管理的事务资源connection，spring提供了<strong>工具类DataSourceUtils</strong>来操作</p>
+<h3 id="一个事务资源管理器的实现：DataSourceTransactionManager"><a href="#一个事务资源管理器的实现：DataSourceTransactionManager" class="headerlink" title="一个事务资源管理器的实现：DataSourceTransactionManager"></a>一个事务资源管理器的实现：DataSourceTransactionManager</h3><p>管理事务关联的connection，提供了对单个JDBC数据源的事务资源的操作函数的实现</p>
+<p>DataSourceTransactionManager对connection的管理中，会通过TransactionSynchronizationManager在启动事务时绑定一个connection，除非发生事务挂起&#x2F;恢复，否则不会切换connection，而是一直使用同个connection</p>
+<p>为什么AbstractPlatformTransactionManager封装了事务状态的切换，却不负责connection的切换？当然不能，AbstractPlatformTransactionManager是一个顶层的抽象模版，需要支持扩展出单数据源和多数据源，而多数据源的情况下显然不会是DataSourceTransactionManager中这样一直使用同个connection的情况</p>
+<h2 id="从事务创建流程看传播机制的处理"><a href="#从事务创建流程看传播机制的处理" class="headerlink" title="从事务创建流程看传播机制的处理"></a>从事务创建流程看传播机制的处理</h2><p>对于AbstractPlatformTransactionManager中对事务状态的处理流程，传播机制相关的处理主要是在创建&#x2F;结束事务时，对应函数为getTransaction()&#x2F;cleanupAfterCompletion()，抽取getTransaction()关键的部分给出了以下流程图：</p>
+<p><img src="https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/396075cd706e467c89a3291e097c04e0~tplv-k3u1fbpfcp-watermark.image" alt="新事务创建流程.png"></p>
+<h2 id="事务的挂起与恢复"><a href="#事务的挂起与恢复" class="headerlink" title="事务的挂起与恢复"></a>事务的挂起与恢复</h2><p>当A调用B，B调用C，并且A&#x2F;B&#x2F;C都声明开启事务时，那么涉及到多个事务的切换。在上一部分的事务创建流程可以看到，对不同的传播机制，大多是不需要开启新事务的，比如默认的REQUIRED，从始至终加入到同一个connection的同一个事务中，统一提交&#x2F;回滚</p>
+<p>而对REQUIERD_NEW的情况，要求每次开启一个新事务，那么对A-&gt;B-&gt;C的情况，就需要有一个栈来记录事务，每次开启新事务前，需要先suspend将原事务入栈；每次提交&#x2F;回滚栈顶事务后，除非是最外层函数关联的事务，否则需要恢复到之前的事务继续进行处理</p>
+<p>在事务状态层面，AbstractPlatformTransactionManager使用的TransactionStatus对象通过suspendedResources字段来实现对前一个事务的记录：每次开启一个新事务时，初始化一个TransactionStatus对象B，并将suspendedResources指向挂起的原TransactionStatus对象A；事务B处理完成后，从suspendedResources中恢复A，继续处理A。即通过suspendedResources属性，用前驱链表方便的实现了一个栈用于挂起-恢复</p>
+<p>在上一部分的事务创建流程中记录了suspend原事务、启动新事务的过程，对应的可以在AbstractPlatformTransactionManager类的cleanupAfterCompletion()方法中看到，如果栈不为空，则会执行resume操作出栈前一事务继续处理</p>
+<h2 id="DataSourceTransactionManager对事务关联的connection的管理"><a href="#DataSourceTransactionManager对事务关联的connection的管理" class="headerlink" title="DataSourceTransactionManager对事务关联的connection的管理"></a>DataSourceTransactionManager对事务关联的connection的管理</h2><p>对REQUIRED之类的传播属性，多个函数实际在同一个事务中统一提交&#x2F;回滚。这种情况下，必须能够保证整个过程是使用的同一个connection</p>
+<p>而对REQUIRE_NEW的情况，需要管理多个数据库事务，需要切换多个connection，那么同样的需要一个栈，来记录执行过程中每个事务关联的connection</p>
+<p>在DataSourceTransactionManager中，借助TransactionSynchronizationManager提供的threadlocal存储，可以方便的保证线程执行中使用同一个connection，可以参看doBegin()方法：如果TransactionSynchronizationManager（threadlocal）中存储了connection对象，那么直接取用；否则才获取新的connection，以下摘取了关键代码：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br></pre></td><td class="code"><pre><span class="line">@Override</span><br><span class="line">	protected void doBegin(Object transaction, TransactionDefinition definition) &#123;</span><br><span class="line">		DataSourceTransactionObject txObject = (DataSourceTransactionObject) transaction;</span><br><span class="line">		Connection con = null;</span><br><span class="line">                </span><br><span class="line">                // 尝试从TransactionSynchronizationManager获取connection，不存在时新建connection</span><br><span class="line">                // 对于前一个事务挂起的情况，在执行挂起操作的suspend函数中，会将TransactionSynchronizationManager绑定的资源清空，此处会新建connection</span><br><span class="line">		try &#123;</span><br><span class="line">			if (!txObject.hasConnectionHolder() ||</span><br><span class="line">					txObject.getConnectionHolder().isSynchronizedWithTransaction()) &#123;</span><br><span class="line">				Connection newCon = obtainDataSource().getConnection();</span><br><span class="line">				if (logger.isDebugEnabled()) &#123;</span><br><span class="line">					logger.debug(&quot;Acquired Connection [&quot; + newCon + &quot;] for JDBC transaction&quot;);</span><br><span class="line">				&#125;</span><br><span class="line">				txObject.setConnectionHolder(new ConnectionHolder(newCon), true);</span><br><span class="line">			&#125;</span><br><span class="line"></span><br><span class="line">			txObject.getConnectionHolder().setSynchronizedWithTransaction(true);</span><br><span class="line">			con = txObject.getConnectionHolder().getConnection();</span><br><span class="line">                        </span><br><span class="line">                        // 根据TransactionDefinition参数，设置connection属性</span><br><span class="line">			Integer previousIsolationLevel = DataSourceUtils.prepareConnectionForTransaction(con, definition);</span><br><span class="line">			txObject.setPreviousIsolationLevel(previousIsolationLevel);</span><br><span class="line">			txObject.setReadOnly(definition.isReadOnly());</span><br><span class="line">                        </span><br><span class="line">                        // 启动事务</span><br><span class="line">			// Switch to manual commit if necessary. This is very expensive in some JDBC drivers,</span><br><span class="line">			// so we don&#x27;t want to do it unnecessarily (for example if we&#x27;ve explicitly</span><br><span class="line">			// configured the connection pool to set it already).</span><br><span class="line">			if (con.getAutoCommit()) &#123;</span><br><span class="line">				txObject.setMustRestoreAutoCommit(true);</span><br><span class="line">				if (logger.isDebugEnabled()) &#123;</span><br><span class="line">					logger.debug(&quot;Switching JDBC Connection [&quot; + con + &quot;] to manual commit&quot;);</span><br><span class="line">				&#125;</span><br><span class="line">				con.setAutoCommit(false);</span><br><span class="line">			&#125;</span><br><span class="line">                        </span><br><span class="line">                        //...</span><br><span class="line">                        </span><br><span class="line">                        // 绑定事务connection到TransactionSynchronizationManager</span><br><span class="line">			// Bind the connection holder to the thread.</span><br><span class="line">			if (txObject.isNewConnectionHolder()) &#123;</span><br><span class="line">				TransactionSynchronizationManager.bindResource(obtainDataSource(), txObject.getConnectionHolder());</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		catch (Throwable ex) &#123;</span><br><span class="line">			if (txObject.isNewConnectionHolder()) &#123;</span><br><span class="line">				DataSourceUtils.releaseConnection(con, obtainDataSource());</span><br><span class="line">				txObject.setConnectionHolder(null, false);</span><br><span class="line">			&#125;</span><br><span class="line">			throw new CannotCreateTransactionException(&quot;Could not open JDBC Connection for transaction&quot;, ex);</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>而对需要切换connection的情况，那么则需要在父类AbstractPlatformTransactionManager通知切换事务——suspend&#x2F;resume时，相应的完成connection的切换，如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">@Override</span><br><span class="line">protected Object doSuspend(Object transaction) &#123;</span><br><span class="line">       // 挂起事务时，将TransactionSynchronizationManager绑定的资源清空，之后启动事务时则会新建connection</span><br><span class="line">	DataSourceTransactionObject txObject = (DataSourceTransactionObject) transaction;</span><br><span class="line">	txObject.setConnectionHolder(null);</span><br><span class="line">	return TransactionSynchronizationManager.unbindResource(obtainDataSource());</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">@Override</span><br><span class="line">protected void doResume(@Nullable Object transaction, Object suspendedResources) &#123;</span><br><span class="line">	TransactionSynchronizationManager.bindResource(obtainDataSource(), suspendedResources);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/java/" rel="tag"># java</a>
+              <a href="/tags/Spring-Boot/" rel="tag"># Spring Boot</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2022/07/29/%E4%BB%8EJDBC%20Driver%E7%9C%8Bjava%20SPI/" rel="prev" title="从JDBC Driver看java SPI">
+      <i class="fa fa-chevron-left"></i> 从JDBC Driver看java SPI
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2020/11/14/java%E7%B1%BB%E5%8A%A0%E8%BD%BD%E5%99%A8%E9%97%AE%E9%A2%98%E6%80%9D%E8%80%83%E4%B8%8E%E7%AE%80%E5%8D%95%E6%A8%A1%E6%8B%9F%E7%83%AD%E9%83%A8%E7%BD%B2/" rel="next" title="java类加载器问题思考与简单模拟热部署">
+      java类加载器问题思考与简单模拟热部署 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E9%9D%A2%E5%90%91%E5%BA%94%E7%94%A8%E5%B1%82%E7%9A%84api"><span class="nav-number">1.</span> <span class="nav-text">面向应用层的api</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BD%BF%E7%94%A8JdbcTemplate%E6%89%8B%E5%8A%A8%E6%93%8D%E4%BD%9C%E4%BA%8B%E5%8A%A1"><span class="nav-number">1.1.</span> <span class="nav-text">使用JdbcTemplate手动操作事务</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BD%BF%E7%94%A8%E6%B3%A8%E8%A7%A3-Transactional%E5%A3%B0%E6%98%8E%E5%BC%8F%E5%A4%84%E7%90%86%E4%BA%8B%E5%8A%A1"><span class="nav-number">1.2.</span> <span class="nav-text">使用注解@Transactional声明式处理事务</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%A4%9A%E4%BA%8B%E5%8A%A1%E5%88%87%E6%8D%A2%E4%B8%8E%E4%BC%A0%E6%92%AD%E6%9C%BA%E5%88%B6%E7%9A%84%E5%AE%9E%E7%8E%B0"><span class="nav-number">2.</span> <span class="nav-text">多事务切换与传播机制的实现</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BA%8B%E5%8A%A1%E7%AE%A1%E7%90%86%E5%85%B3%E9%94%AE%E7%9A%84%E7%B1%BB"><span class="nav-number">2.1.</span> <span class="nav-text">事务管理关键的类</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BA%8B%E5%8A%A1%E7%AE%A1%E7%90%86%E5%99%A8AbstractPlatformTransactionManager"><span class="nav-number">2.1.1.</span> <span class="nav-text">事务管理器AbstractPlatformTransactionManager</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%BA%8B%E5%8A%A1%E7%8A%B6%E6%80%81TransactionStatus"><span class="nav-number">2.1.1.1.</span> <span class="nav-text">事务状态TransactionStatus</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BA%8B%E5%8A%A1%E5%90%8C%E6%AD%A5%E7%AE%A1%E7%90%86%E5%99%A8TransactionSynchronizationManager"><span class="nav-number">2.1.2.</span> <span class="nav-text">事务同步管理器TransactionSynchronizationManager</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%80%E4%B8%AA%E4%BA%8B%E5%8A%A1%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86%E5%99%A8%E7%9A%84%E5%AE%9E%E7%8E%B0%EF%BC%9ADataSourceTransactionManager"><span class="nav-number">2.1.3.</span> <span class="nav-text">一个事务资源管理器的实现：DataSourceTransactionManager</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BB%8E%E4%BA%8B%E5%8A%A1%E5%88%9B%E5%BB%BA%E6%B5%81%E7%A8%8B%E7%9C%8B%E4%BC%A0%E6%92%AD%E6%9C%BA%E5%88%B6%E7%9A%84%E5%A4%84%E7%90%86"><span class="nav-number">2.2.</span> <span class="nav-text">从事务创建流程看传播机制的处理</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BA%8B%E5%8A%A1%E7%9A%84%E6%8C%82%E8%B5%B7%E4%B8%8E%E6%81%A2%E5%A4%8D"><span class="nav-number">2.3.</span> <span class="nav-text">事务的挂起与恢复</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#DataSourceTransactionManager%E5%AF%B9%E4%BA%8B%E5%8A%A1%E5%85%B3%E8%81%94%E7%9A%84connection%E7%9A%84%E7%AE%A1%E7%90%86"><span class="nav-number">2.4.</span> <span class="nav-text">DataSourceTransactionManager对事务关联的connection的管理</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">马天</p>
+  <div class="site-description" itemprop="description">程序猿</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">25</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">10</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/matian2014" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;matian2014" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:matian1103@qq.com" title="E-Mail → mailto:matian1103@qq.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">马天</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

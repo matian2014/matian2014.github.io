@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 6.3.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.jpg">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon.jpg">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"matian.itprimer.cn","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="java中，ClassLoader负责读取class文件、加载到JVM 类加载过程类加载包含的过程：  加载，根据类的完全限定查找字节码文件并加载、创建一个Class对象 验证，验证class文件符合JVM要求 准备，为static变量分配内存并初始化为初始值（不管是否显式指定了初始化，都先初始化为变量类型默认的初始值） 解析，为常量值创建直接引用 初始化，类的初始化（static变量初始化、st">
+<meta property="og:type" content="article">
+<meta property="og:title" content="java类加载器问题思考与简单模拟热部署">
+<meta property="og:url" content="http://matian.itprimer.cn/2020/11/14/java%E7%B1%BB%E5%8A%A0%E8%BD%BD%E5%99%A8%E9%97%AE%E9%A2%98%E6%80%9D%E8%80%83%E4%B8%8E%E7%AE%80%E5%8D%95%E6%A8%A1%E6%8B%9F%E7%83%AD%E9%83%A8%E7%BD%B2/index.html">
+<meta property="og:site_name" content="马天">
+<meta property="og:description" content="java中，ClassLoader负责读取class文件、加载到JVM 类加载过程类加载包含的过程：  加载，根据类的完全限定查找字节码文件并加载、创建一个Class对象 验证，验证class文件符合JVM要求 准备，为static变量分配内存并初始化为初始值（不管是否显式指定了初始化，都先初始化为变量类型默认的初始值） 解析，为常量值创建直接引用 初始化，类的初始化（static变量初始化、st">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2020-11-14T04:10:31.000Z">
+<meta property="article:modified_time" content="2022-11-06T11:38:23.258Z">
+<meta property="article:author" content="马天">
+<meta property="article:tag" content="java">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://matian.itprimer.cn/2020/11/14/java%E7%B1%BB%E5%8A%A0%E8%BD%BD%E5%99%A8%E9%97%AE%E9%A2%98%E6%80%9D%E8%80%83%E4%B8%8E%E7%AE%80%E5%8D%95%E6%A8%A1%E6%8B%9F%E7%83%AD%E9%83%A8%E7%BD%B2/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>java类加载器问题思考与简单模拟热部署 | 马天</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">马天</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://matian.itprimer.cn/2020/11/14/java%E7%B1%BB%E5%8A%A0%E8%BD%BD%E5%99%A8%E9%97%AE%E9%A2%98%E6%80%9D%E8%80%83%E4%B8%8E%E7%AE%80%E5%8D%95%E6%A8%A1%E6%8B%9F%E7%83%AD%E9%83%A8%E7%BD%B2/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="马天">
+      <meta itemprop="description" content="程序猿">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="马天">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          java类加载器问题思考与简单模拟热部署
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-11-14 12:10:31" itemprop="dateCreated datePublished" datetime="2020-11-14T12:10:31+08:00">2020-11-14</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/java/" itemprop="url" rel="index"><span itemprop="name">java</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>java中，ClassLoader负责读取class文件、加载到JVM</p>
+<h1 id="类加载过程"><a href="#类加载过程" class="headerlink" title="类加载过程"></a>类加载过程</h1><p>类加载包含的过程：</p>
+<ul>
+<li>加载，根据类的完全限定查找字节码文件并加载、创建一个Class对象</li>
+<li>验证，验证class文件符合JVM要求</li>
+<li>准备，为static变量分配内存并初始化为初始值（不管是否显式指定了初始化，都先初始化为变量类型默认的初始值）</li>
+<li>解析，为常量值创建直接引用</li>
+<li>初始化，类的初始化（static变量初始化、static代码块执行）</li>
+</ul>
+<span id="more"></span>
+
+<p>所以说，在类加载时就初始化了static量和常量，static量和常量是和class对象一样存储在方法区的。此处要说明的是，比如A中引用了B类作为静态变量，那么在加载A类时，并不会加载B，而是作为一个引用直接默认初始化为null，在初始化A时，才会加载static变量引用的类（静态变量都是如此，也不必说成员变量了）（<a target="_blank" rel="noopener" href="https://stackoverflow.com/questions/48621815/static-fields-in-jvm-loading%EF%BC%89">https://stackoverflow.com/questions/48621815/static-fields-in-jvm-loading）</a></p>
+<p>另外，一个类在只引用了static变量时，会先完成static变量显式初始化和static代码块，而不会初始化成员变量、执行构造器。考虑全部的话，顺序是：父类 static 变量 –&gt; 父类 static 代码块 –&gt; 子类 static 变量 –&gt; 子类 static 代码块 –&gt; 父类显式初始化 –&gt; 父类构造代码块 –&gt; 父类构造器 –&gt; 子类显式初始化 –&gt; 子类构造代码块  –&gt; 子类构造器</p>
+<p>初始化的顺序就是，保证在变量可以被访问时，一定已经初始化了。所以，先static再成员变量，先初始化代码块再构造器，先父类再子类；在子类执行成员变量初始化、构造器之前，因为可能引用到父类的成员变量，所以一定先完成父类的成员变量显式初始化、构造代码块、构造器</p>
+<p>另外一个情况明确下：比如，父类static量引用了子类static量，那么从子类static得到的是类型默认的初始值，而不会先初始化子类static量。但是这种情况可以认为不存在（子类肯定知道父类的存在，但是父类不应该知道子类的存在；这种情况并发时可能在类加载时导致死锁）</p>
+<h1 id="各种ClassLoader"><a href="#各种ClassLoader" class="headerlink" title="各种ClassLoader"></a>各种ClassLoader</h1><ul>
+<li>Bootstrap类加载器，C++实现，加载<JAVA_HOME>&#x2F;lib路径下的核心类库或-Xbootclasspath参数指定的路径下的jar包加载到内存中，主要是java.xxx等核心类</li>
+<li>Extension类加载器，java实现，加载<JAVA_HOME>&#x2F;lib&#x2F;ext目录下或者由系统变量-Djava.ext.dir指定位路径中的类库，java代码中可以使用</li>
+<li>System类加载器&#x2F;APP类加载器，加载系统类路径java -classpath或-D java.class.path 指定路径下的类库，开发者引入的依赖和编写的类</li>
+</ul>
+<h2 id="关于父类和父加载器"><a href="#关于父类和父加载器" class="headerlink" title="关于父类和父加载器"></a>关于父类和父加载器</h2><p>APP类加载器的父加载器是Extension类加载器，Extension类加载器的父加载器是null，或者可以认为是Bootstrap类加载器（C++实现）</p>
+<p>自定义的类加载器的父加载器不指定时默认都是APP类加载器</p>
+<p>父加载器和父类、子类没有关系。从类继承关系上来说，Bootstrap类加载器是C++实现的，不考虑；Extension类加载器和APP类加载器都是继承自URLClassLoader，再向上都继承自抽象类ClassLoader</p>
+<h1 id="一些特点"><a href="#一些特点" class="headerlink" title="一些特点"></a>一些特点</h1><h2 id="延迟加载"><a href="#延迟加载" class="headerlink" title="延迟加载"></a>延迟加载</h2><p>在使用到时才加载，比如：</p>
+<ul>
+<li>显式加载，比如Class.forName()（典型的，加载数据库jdbc驱动）、getClass().getClassLoader().loadClass()</li>
+<li>隐式加载，使用到时自动加载</li>
+</ul>
+<p>关于Class.forName()，要注意的是，这一方法默认会将类加载并初始化（初始化static量和static代码块）。所以加载jdbc驱动时，只需要Class.forName(“com.mysql.jdbc.Driver”)，因为Driver类使用了static代码块初始化</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Driver</span> <span class="keyword">extends</span> <span class="title class_">NonRegisteringDriver</span> <span class="keyword">implements</span> <span class="title class_">java</span>.sql.Driver &#123;</span><br><span class="line">	<span class="comment">// ~ Static fields/initializers</span></span><br><span class="line">	<span class="comment">// ---------------------------------------------</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">//</span></span><br><span class="line">	<span class="comment">// Register ourselves with the DriverManager</span></span><br><span class="line">	<span class="comment">//</span></span><br><span class="line">	<span class="keyword">static</span> &#123;</span><br><span class="line">		<span class="keyword">try</span> &#123;</span><br><span class="line">			java.sql.DriverManager.registerDriver(<span class="keyword">new</span> <span class="title class_">Driver</span>());</span><br><span class="line">		&#125; <span class="keyword">catch</span> (SQLException E) &#123;</span><br><span class="line">			<span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">RuntimeException</span>(<span class="string">&quot;Can&#x27;t register driver!&quot;</span>);</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// ~ Constructors</span></span><br><span class="line">	<span class="comment">// -----------------------------------------------------------</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">/**</span></span><br><span class="line"><span class="comment">	 * Construct a new driver and register it with DriverManager</span></span><br><span class="line"><span class="comment">	 * </span></span><br><span class="line"><span class="comment">	 * <span class="doctag">@throws</span> SQLException</span></span><br><span class="line"><span class="comment">	 *             if a database error occurs.</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	<span class="keyword">public</span> <span class="title function_">Driver</span><span class="params">()</span> <span class="keyword">throws</span> SQLException &#123;</span><br><span class="line">		<span class="comment">// Required for Class.forName().newInstance()</span></span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>而loadClass()只加载、默认不解析（相关的是resolveClass()方法）、不初始化</p>
+<h2 id="双亲委派"><a href="#双亲委派" class="headerlink" title="双亲委派"></a>双亲委派</h2><p>在loadClass()方法中加载类，默认的实现中流程都是：</p>
+<ul>
+<li>findLoadedClass()从缓存检查是否已经加载，已经加载时直接返回</li>
+<li>交由父加载器加载，父加载器继续交由父加载器，即递归的向上请求，父加载器为null时请求Bootstrap加载器加载（所以说可以认为Bootstrap加载器是Ext加载器的父加载器）</li>
+<li>如果父加载器不能加载，那么自行调用findClass()方法找到类并加载</li>
+</ul>
+<p>ClassLoader类中实现的findClass()方法没有具体操作，而是直接抛出了一个异常，URLClassLoader类中做出了实现</p>
+<p>双亲委派可以保证安全性，核心类库只会由内置的类加载器加载（而且，即使自定义了一个类取包名为java.lang之类，是会报错禁止加载的）</p>
+<h2 id="classLoader与class对象"><a href="#classLoader与class对象" class="headerlink" title="classLoader与class对象"></a>classLoader与class对象</h2><p>不考虑父加载器，在一个classLoader中，class对象是唯一的，但是在多个不同的classLoader之间，可能某个类使用不同的多个加载器加载了多个class对象，即不同的classLoader加载的实例对象都拥有不同的独立的类名称空间</p>
+<p>使用默认的loadClass()方法中，先使用findLoadedClass()方法根据完整类名检查了类是否已经加载。因此，一个classLoader实例，只能加载一个类一次（即使重写了loadClass()方法去掉了findLoadedClass()检查，在重复加载时会报错duplicate class definition）</p>
+<p>如果要加载一个class多次，需要每次使用一个新的自定义classLoader实例，并且这个class应该是这一个classLoader自行加载的（而不是委托给父加载器的）。对于一个代码中直接使用了的类，APP类加载器默认已经加载了，即使通过自定义classLoader加载多个class，直接调用构造器new得到的这一个类的实例，关联的仍然是APP类加载器加载的class对象（所以如果将自定义类加载器加载的类的实例cast为代码中的A，是会异常的，关联的不是同一个class对象当然不能cast）</p>
+<h1 id="自定义classLoader"><a href="#自定义classLoader" class="headerlink" title="自定义classLoader"></a>自定义classLoader</h1><p>可用于实现：</p>
+<ul>
+<li>从一个自定义的路径加载类，或者从网络加载类</li>
+<li>对于特定路径&#x2F;网络中读取的字节码加密的class文件，自定义classLoader来实现解密后加载</li>
+<li>热部署。假设要从一个特定的目录读取class文件并替换当前实例，可以使用多个classLoader，直接调用findClass()方法从特定目录加载某个class文件，来得到多个class对象；或者指定自定义类加载器的父加载器是null或Ext类加载器，并重写findClass()方法，调用loadClass()加载（下文有说明和实现）</li>
+</ul>
+<p>自定义时，文档中不建议重写loadClass()方法，因为可能打破双亲委派模型，建议实现findClass()方法（默认流程中，先尝试父加载器加载，父加载器不能加载时findClass()找到类来加载；如果直接重写loadClass()方法放弃了使用父加载器，对于引用到的java.xxx等类（即使什么也没引用那么也默认extends了Object），自定义类加载器是禁止加载这些核心类的）</p>
+<p>findClass()方法用于读取字节码的流，defineClass()用于将字节码的构建为class对象</p>
+<p>自定义时，如果继承ClassLoader类，需要重写findClass()方法，在其中读取字节码，然后调用defineClass()方法构建class对象并返回；如果继承URLClassLoader类，那么已经实现了很完备的findClass()方法，可以识别传入的是一个文件路径还是URL等，一般比较简洁</p>
+<p>还需要注意的是，一个classLoader加载类A，那么它也需要负责加载A中使用的其他类，实现中可以是委托到双亲或者自行加载</p>
+<h1 id="简单模拟热部署"><a href="#简单模拟热部署" class="headerlink" title="简单模拟热部署"></a>简单模拟热部署</h1><p>模拟热部署，假设要从一个特定的目录读取class文件并替换当前实例，可以使用多个classLoader，直接调用findClass()方法从特定目录加载某个class文件，来得到多个class对象；或者指定自定义类加载器的父加载器是null或Ext类加载器，并重写findClass()方法，调用loadClass()加载</p>
+<p>直接调用findClass()方法显然可以得到这个类的多个class对象</p>
+<p>指定自定义类加载器的父加载器是null或Ext类加载器是因为，自定义classLoader默认的父加载器是APP类加载器，APP类加载器是可以加载源代码的类的。既然热部署那么当然这个类在现有代码中已经使用了，APP类加载器已经加载过了，双亲委派模型下无法加载这一个类的多个class对象。而null或Ext类加载器是无法加载源代码中的类的，那么它们将交由自定义类加载器使用findClass()加载</p>
+<p>指定自定义类加载器的父加载器为null或者Ext类加载器带来的问题是，比如指定为Ext类加载器，那么自定义类加载器中只能委托到Ext类加载器和Bootstrap类加载器。如果加载的类A之中引用了一个源代码中其他类B，Ext和Bootstrap类加载器都无法加载B，需要自定义类加载器来处理，这种情况中，可以得到A的class对象，在初始化A时，才会加载B，此时如果自定义类加载器不能加载B，那么就会抛出异常</p>
+<p>对这个问题，我们可以在自定义类加载器中维护一个负责加载的类的集合，集合之外的类调用APP类加载器进行加载</p>
+<p>还存在的一个问题是，代码中直接使用的类A，是由APP类加载器加载的，那么再由自定义类加载器加载一个A时，Class.newInstance()得到的实例，不能cast为代码中的A，因为对应的不是一个class对象，这样使用自定义加载器加载的A时需要通过反射的方式。这个问题可以这样解决：让A实现一个接口C，在使用自定义类加载器加载A时，将接口类交给APP类加载器加载（实际上APP类加载器也应该早已加载过了），那么就可以将A cast为C来使用</p>
+<p>代码如下</p>
+<p>MyService是要热部署的类，实现了MyInterface接口：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> classLoaderTest;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">interface</span> <span class="title class_">MyInterface</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">void</span> <span class="title function_">doSomething</span><span class="params">(String s)</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">package classLoaderTest;</span><br><span class="line"></span><br><span class="line">public class MyService implements MyInterface &#123;</span><br><span class="line"></span><br><span class="line">    // MyTest是源代码中其他类，使用自定义类加载器加载MyService时，loadClass()可以得到class对象，初始化时需要自定义类加载器将MyTest类也加载，自定义类加载器实现中调用了APP类加载器来加载MyTest</span><br><span class="line">    // 实现的接口MyInterface类的加载也是这样处理的</span><br><span class="line">    public static MyTest myTest = new MyTest();</span><br><span class="line">    // Integer，只能由BootStrap类加载器加载，自定义实现中没有打破双亲委托模型，所以可以正常加载</span><br><span class="line">    // Object等间接使用到的类也是委托双亲的</span><br><span class="line">    public Integer num = new Integer(1);</span><br><span class="line"></span><br><span class="line">    @Override</span><br><span class="line">    public void doSomething(String s) &#123;</span><br><span class="line">        System.out.println(&quot;classLoaderTest.MyService: doSomething: &quot; + s);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>MyClassLoader继承自ClassLoader，重写了findClass()方法：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> classLoaderTest;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> java.io.*;</span><br><span class="line"><span class="keyword">import</span> java.util.HashSet;</span><br><span class="line"><span class="keyword">import</span> java.util.Set;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">MyClassLoader</span> <span class="keyword">extends</span> <span class="title class_">ClassLoader</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 读取class文件的路径</span></span><br><span class="line">    <span class="comment">// 测试时已经在这一路径存储好了要加载的class文件</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="type">String</span> <span class="variable">classPath</span> <span class="operator">=</span> <span class="string">&quot;C:\\Users\\matian\\Desktop&quot;</span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// set中的类由自定义类加载器加载，其他类将调用APP类加载器加载</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> Set&lt;String&gt; canLoadClassesNames;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="title function_">MyClassLoader</span><span class="params">(ClassLoader parent)</span> &#123;</span><br><span class="line">        <span class="built_in">super</span>(parent);</span><br><span class="line">        <span class="comment">// 模拟中，自定义类加载器只负责加载MyService类</span></span><br><span class="line">        canLoadClassesNames = <span class="keyword">new</span> <span class="title class_">HashSet</span>&lt;&gt;();</span><br><span class="line">        canLoadClassesNames.add(MyService.class.getName());</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">protected</span> Class&lt;?&gt; findClass(String name) <span class="keyword">throws</span> ClassNotFoundException &#123;</span><br><span class="line">        <span class="comment">// 集合之外的类，调用APP类加载器加载</span></span><br><span class="line">        <span class="keyword">if</span> (!canLoadClassesNames.contains(name)) &#123;</span><br><span class="line">            <span class="keyword">return</span> getSystemClassLoader().loadClass(name);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 负责加载的类，读取class文件，调用defineClass()方法构建class对象</span></span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="type">BufferedInputStream</span> <span class="variable">inputStream</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">BufferedInputStream</span>(<span class="keyword">new</span> <span class="title class_">FileInputStream</span>(classPath + File.separator + name + <span class="string">&quot;.class&quot;</span>));</span><br><span class="line">            <span class="type">byte</span>[] buf = <span class="keyword">new</span> <span class="title class_">byte</span>[<span class="number">1024</span>];</span><br><span class="line">            <span class="type">int</span> <span class="variable">len</span> <span class="operator">=</span> -<span class="number">1</span>;</span><br><span class="line">            <span class="type">ByteArrayOutputStream</span> <span class="variable">byteArrayOutputStream</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ByteArrayOutputStream</span>();</span><br><span class="line">            <span class="keyword">while</span> ((len = inputStream.read(buf)) != -<span class="number">1</span>) &#123;</span><br><span class="line">                byteArrayOutputStream.write(buf, <span class="number">0</span>, len);</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">return</span> defineClass(name, byteArrayOutputStream.toByteArray(), <span class="number">0</span>, byteArrayOutputStream.size());</span><br><span class="line">        &#125; <span class="keyword">catch</span> (FileNotFoundException e) &#123;</span><br><span class="line">            e.printStackTrace();</span><br><span class="line">        &#125; <span class="keyword">catch</span> (IOException e) &#123;</span><br><span class="line">            e.printStackTrace();</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">ClassNotFoundException</span>();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>以及一个模拟热部署的测试类：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">HotDeployTest</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> MyInterface myService;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line">        <span class="comment">// 代码中直接使用的MyService对应的类对象是由APP类加载器加载的</span></span><br><span class="line">        myService = <span class="keyword">new</span> <span class="title class_">MyService</span>();</span><br><span class="line">        myService.doSomething(<span class="string">&quot;before hot deploy&quot;</span>);</span><br><span class="line">        System.out.println(MyService.class.getClassLoader().toString());</span><br><span class="line">        System.out.println(MyInterface.class.getClassLoader().toString());</span><br><span class="line">        System.out.println(myService.getClass().getClassLoader().toString());</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 等待3s后从指定路径加载类，并将myService替换为动态加载的实现</span></span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            Thread.sleep(<span class="number">3000</span>);</span><br><span class="line"></span><br><span class="line">            <span class="type">Class</span> <span class="variable">cls</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">MyClassLoader</span>(<span class="literal">null</span>).loadClass(<span class="string">&quot;classLoaderTest.MyService&quot;</span>);</span><br><span class="line">            myService = (MyInterface) cls.newInstance();</span><br><span class="line">            System.out.println(MyService.class.getClassLoader().toString());</span><br><span class="line">            System.out.println(MyInterface.class.getClassLoader().toString());</span><br><span class="line">            System.out.println(myService.getClass().getClassLoader().toString());</span><br><span class="line">            System.out.println(cls.getClassLoader().toString());</span><br><span class="line">        &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</span><br><span class="line">            e.printStackTrace();</span><br><span class="line">        &#125; <span class="keyword">catch</span> (ClassNotFoundException e) &#123;</span><br><span class="line">            e.printStackTrace();</span><br><span class="line">        &#125; <span class="keyword">catch</span> (IllegalAccessException e) &#123;</span><br><span class="line">            e.printStackTrace();</span><br><span class="line">        &#125; <span class="keyword">catch</span> (InstantiationException e) &#123;</span><br><span class="line">            e.printStackTrace();</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        myService.doSomething(<span class="string">&quot;after hot deploy&quot;</span>);</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>以上代码输出：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">classLoaderTest.MyService: doSomething: before hot deploy</span><br><span class="line">sun.misc.Launcher$AppClassLoader@18b4aac2</span><br><span class="line">sun.misc.Launcher$AppClassLoader@18b4aac2</span><br><span class="line">sun.misc.Launcher$AppClassLoader@18b4aac2</span><br><span class="line">sun.misc.Launcher$AppClassLoader@18b4aac2</span><br><span class="line">sun.misc.Launcher$AppClassLoader@18b4aac2</span><br><span class="line">classLoaderTest.MyClassLoader@4554617c</span><br><span class="line">classLoaderTest.MyClassLoader@4554617c</span><br><span class="line">classLoaderTest.MyService: doSomething: after hot deploy</span><br></pre></td></tr></table></figure>
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/java/" rel="tag"># java</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2022/07/25/%E7%9C%8BSpring%E4%BA%8B%E5%8A%A1%E6%9C%BA%E5%88%B6%E7%9A%84%E5%AE%9E%E7%8E%B0/" rel="prev" title="看Spring事务机制的实现">
+      <i class="fa fa-chevron-left"></i> 看Spring事务机制的实现
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2020/03/09/Spring%20Boot%20@Import%E7%9A%84%E4%BD%BF%E7%94%A8/" rel="next" title="Spring Boot @Import的使用">
+      Spring Boot @Import的使用 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E7%B1%BB%E5%8A%A0%E8%BD%BD%E8%BF%87%E7%A8%8B"><span class="nav-number">1.</span> <span class="nav-text">类加载过程</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%90%84%E7%A7%8DClassLoader"><span class="nav-number">2.</span> <span class="nav-text">各种ClassLoader</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%B3%E4%BA%8E%E7%88%B6%E7%B1%BB%E5%92%8C%E7%88%B6%E5%8A%A0%E8%BD%BD%E5%99%A8"><span class="nav-number">2.1.</span> <span class="nav-text">关于父类和父加载器</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%80%E4%BA%9B%E7%89%B9%E7%82%B9"><span class="nav-number">3.</span> <span class="nav-text">一些特点</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%BB%B6%E8%BF%9F%E5%8A%A0%E8%BD%BD"><span class="nav-number">3.1.</span> <span class="nav-text">延迟加载</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8F%8C%E4%BA%B2%E5%A7%94%E6%B4%BE"><span class="nav-number">3.2.</span> <span class="nav-text">双亲委派</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#classLoader%E4%B8%8Eclass%E5%AF%B9%E8%B1%A1"><span class="nav-number">3.3.</span> <span class="nav-text">classLoader与class对象</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E8%87%AA%E5%AE%9A%E4%B9%89classLoader"><span class="nav-number">4.</span> <span class="nav-text">自定义classLoader</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E7%AE%80%E5%8D%95%E6%A8%A1%E6%8B%9F%E7%83%AD%E9%83%A8%E7%BD%B2"><span class="nav-number">5.</span> <span class="nav-text">简单模拟热部署</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">马天</p>
+  <div class="site-description" itemprop="description">程序猿</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">25</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">10</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/matian2014" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;matian2014" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:matian1103@qq.com" title="E-Mail → mailto:matian1103@qq.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">马天</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>
