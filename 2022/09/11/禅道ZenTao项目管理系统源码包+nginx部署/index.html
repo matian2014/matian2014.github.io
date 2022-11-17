@@ -28,7 +28,7 @@
 <meta property="og:description" content="话说程序员是块砖，哪里需要哪里搬——组里打算试用下禅道做项目管理，这里就记录下源码包部署的过程和一些基本的配置修改 从网上搜来的介绍：禅道是第一款国产的开源项目管理软件，她的核心管理思想基于敏捷方法scrum，内置了产品管理和项目管理，同时又根据国内研发现状补充了测试管理、计划管理、发布管理、文档管理、事务管理等功能，在一个软件中就可以将软件研发中的需求、任务、bug、用例、计划、发布等要素有序的">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2022-09-11T03:29:09.000Z">
-<meta property="article:modified_time" content="2022-11-17T01:55:43.381Z">
+<meta property="article:modified_time" content="2022-11-17T06:25:30.753Z">
 <meta property="article:author" content="马天">
 <meta property="article:tag" content="软件部署">
 <meta name="twitter:card" content="summary">
@@ -223,14 +223,9 @@
 
 <p>具体可以参考<a target="_blank" rel="noopener" href="https://gitee.com/connormma/quick_launch_tools/blob/master/php/linux_amd64/php_install.sh">quick_launch_tools</a>仓库提供的php安装脚本</p>
 <p>禅道使用php开发的，nginx的代理需要通过php-fpm，启动php-fpm，默认监听9000端口，相关的配置位于php配置目录的php-fpm.d&#x2F;<a target="_blank" rel="noopener" href="http://www.conf文件,同时可在此文件修改php进程使用的用户/">www.conf文件，同时可在此文件修改php进程使用的用户</a></p>
-<h2 id="mysql-5-7配置"><a href="#mysql-5-7配置" class="headerlink" title="mysql 5.7配置"></a>mysql 5.7配置</h2><p>安装mysql5.7，以centos为例可以直接使用rpm包安装：</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">rpm --import https://repo.mysql.com/RPM-GPG-KEY-mysql-2022 </span><br><span class="line">yum localinstall https://dev.mysql.com/get/mysql57-community-release-el7-11.noarch.rpm </span><br><span class="line">yum install mysql-community-server  -y</span><br><span class="line">systemctl start mysqld</span><br></pre></td></tr></table></figure>
-
-<p>安装完成后需要修改root账户临时密码：</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">查询临时密码</span></span><br><span class="line">grep &#x27;A temporary password&#x27; /var/log/mysqld.log |tail -1 </span><br></pre></td></tr></table></figure>
-
-<p>使用mysql客户端连接到数据库，修改临时密码：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"># 修改root密码</span><br><span class="line">alter user &#x27;root&#x27;@&#x27;localhost&#x27; identified by &#x27;yourrootpassword&#x27;;</span><br><span class="line"></span><br><span class="line">同时创建禅道使用的用户zentao，指定具有zentao这一db下的权限（zentao数据库将在禅道初始化过程中自动创建）</span><br><span class="line">```shell</span><br><span class="line"># 创建zentao@%用户，可由任意地址登录</span><br><span class="line">create user &#x27;zentao&#x27;@&#x27;%&#x27; identified by &#x27;yourzentaopassword&#x27;;</span><br><span class="line">grant all privileges  on zentao.* to &quot;zentao&quot;@&#x27;%&#x27;;</span><br></pre></td></tr></table></figure>
+<h2 id="mysql-5-7配置"><a href="#mysql-5-7配置" class="headerlink" title="mysql 5.7配置"></a>mysql 5.7配置</h2><p>安装mysql5.7，具体可以参考<a target="_blank" rel="noopener" href="https://gitee.com/connormma/quick_launch_tools/blob/master/mysql/linux_amd64/mysql_install.sh">quick_launch_tools</a>仓库提供的php安装脚本</p>
+<p>使用mysql客户端连接到数据库，创建禅道使用的用户zentao，指定具有zentao这一db下的权限（zentao数据库将在禅道初始化过程中自动创建）</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">创建zentao@%用户，可由任意地址登录</span></span><br><span class="line">create user &#x27;zentao&#x27;@&#x27;%&#x27; identified by &#x27;yourzentaopassword&#x27;;</span><br><span class="line">grant all privileges  on zentao.* to &quot;zentao&quot;@&#x27;%&#x27;;</span><br></pre></td></tr></table></figure>
 
 <h2 id="nginx配置"><a href="#nginx配置" class="headerlink" title="nginx配置"></a>nginx配置</h2><p>安装nginx，具体可以参考<a target="_blank" rel="noopener" href="https://gitee.com/connormma/quick_launch_tools/blob/master/nginx/linux_amd64/nginx_install.sh">quick_launch_tools</a>仓库提供的nginx安装脚本</p>
 <p>nginx配置中关键的是开启对php-fpm的代理，可以参考以下配置</p>
