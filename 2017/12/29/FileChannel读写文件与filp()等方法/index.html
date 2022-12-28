@@ -17,23 +17,23 @@
 
 <script id="hexo-configurations">
     var NexT = window.NexT || {};
-    var CONFIG = {"hostname":"matian.itprimer.cn","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+    var CONFIG = {"hostname":"matian.connorma.cn","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
   </script>
 
   <meta name="description" content="使用FileChannel读写文件，我们只需要关注缓冲区Buffer，只需要对Buffer进行读写操作。 我们关注的只是Buffer的读写， 当需要向文件中写入数据时，将数据写入Buffer，然后使用Channel读取Buffer中的内容写出到文件。对于Buffer，这是一个“写入——读取”的过程。 当需要从文件中读取数据时，使用channel读取文件的内容写入到Buffer，然后读取Buffer">
 <meta property="og:type" content="article">
 <meta property="og:title" content="FileChannel读写文件与filp()等方法">
-<meta property="og:url" content="http://matian.itprimer.cn/2017/12/29/FileChannel%E8%AF%BB%E5%86%99%E6%96%87%E4%BB%B6%E4%B8%8Efilp()%E7%AD%89%E6%96%B9%E6%B3%95/index.html">
+<meta property="og:url" content="http://matian.connorma.cn/2017/12/29/FileChannel%E8%AF%BB%E5%86%99%E6%96%87%E4%BB%B6%E4%B8%8Efilp()%E7%AD%89%E6%96%B9%E6%B3%95/index.html">
 <meta property="og:site_name" content="马天">
 <meta property="og:description" content="使用FileChannel读写文件，我们只需要关注缓冲区Buffer，只需要对Buffer进行读写操作。 我们关注的只是Buffer的读写， 当需要向文件中写入数据时，将数据写入Buffer，然后使用Channel读取Buffer中的内容写出到文件。对于Buffer，这是一个“写入——读取”的过程。 当需要从文件中读取数据时，使用channel读取文件的内容写入到Buffer，然后读取Buffer">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2017-12-29T04:09:06.000Z">
-<meta property="article:modified_time" content="2022-11-05T07:33:02.408Z">
+<meta property="article:modified_time" content="2022-11-05T07:33:04.000Z">
 <meta property="article:author" content="马天">
 <meta property="article:tag" content="java">
 <meta name="twitter:card" content="summary">
 
-<link rel="canonical" href="http://matian.itprimer.cn/2017/12/29/FileChannel%E8%AF%BB%E5%86%99%E6%96%87%E4%BB%B6%E4%B8%8Efilp()%E7%AD%89%E6%96%B9%E6%B3%95/">
+<link rel="canonical" href="http://matian.connorma.cn/2017/12/29/FileChannel%E8%AF%BB%E5%86%99%E6%96%87%E4%BB%B6%E4%B8%8Efilp()%E7%AD%89%E6%96%B9%E6%B3%95/">
 
 
 <script id="page-configurations">
@@ -166,7 +166,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://matian.itprimer.cn/2017/12/29/FileChannel%E8%AF%BB%E5%86%99%E6%96%87%E4%BB%B6%E4%B8%8Efilp()%E7%AD%89%E6%96%B9%E6%B3%95/">
+    <link itemprop="mainEntityOfPage" href="http://matian.connorma.cn/2017/12/29/FileChannel%E8%AF%BB%E5%86%99%E6%96%87%E4%BB%B6%E4%B8%8Efilp()%E7%AD%89%E6%96%B9%E6%B3%95/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.gif">
