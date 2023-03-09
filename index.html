@@ -220,25 +220,14 @@
 <li>服务端校验根据三方应用ID、随机数验证签名，从而确认请求来自合法的三方应用</li>
 </ul>
 <p>这里身份认证的可信来自于签名算法的单向和secret的私密——但也并不是非常完善的，尤其是与OAuth协议的流程对比之后</p>
-<h2 id="OAuth协议的流程"><a href="#OAuth协议的流程" class="headerlink" title="OAuth协议的流程"></a>OAuth协议的流程</h2><p>不难发现，前文设计的流程与OAuth授权流程的基本思路是一致的，所以OAuth确实是非常简明的。</p>
-<p>OAuth中最常用的是授权码模式，最典型的应用也是最常见的例子：github的OAuth app、微信小程序请求微信登录，都是基于OAuth的授权码模式</p>
-<p>这里再来看一下集成github OAuth的流程：</p>
-<ol>
-<li>登录一个oauth app，分配到client_id（appId），client_secret</li>
-<li>用户再三方应用请求登录时，携带client_id、client_secret、redirect_uri（用户允许登录后的重定向页面）重定向到github授权页面</li>
-<li>如果用户在github授权页面允许授权，则由github重定向回应用指定的redirect_uri，并返回一个参数code（作用类似与前文的随机数）</li>
-<li>三方应用服务端收到github的回调后，携带返回的code和client_id、client_secret向github请求一个token</li>
-<li>如果token申请成功，则三方应用后续直接使用github返回的token请求github接口</li>
-</ol>
-<p>了解了这一流程，回顾前文自己的设计，最大的差别是github的OAtuh流程中code随机数只用于token申请，之后的请求都是携带token进行认证的，优势是很明显的：</p>
-<ul>
-<li>前文流程中每次请求对code签名作为凭证，如果code超时失效则需要重新走一遍申请code流程，但是为了降低code泄露带来的风险，code的有效期不能设置的过长</li>
-<li>在OAuth流程中，三方应用的token验证和自身用户体系内的认证，如果需要是完全可以统一的————相对于对三方应用的请求只是管控了入口，之后的请求的处理都是一致的，只不过对于三方应用的token在数据权限上要做更多限制</li>
-</ul>
-<p>在此之外不难发现另一个差别。翻看github、微信小程序之类OAuth流程的实现，会发现在应用申请token这一步，都是直接在请求参数中携带了应用的secret————而不是前文设计的流程中一样使用secret签名，真正的secret不进行传输。</p>
-<p>这里本身OAuth协议的开放性很高，并没有什么严格的要求，需要在实现时根据需求自行决定。为什么github、微信选择了传输secret呢？其实可以这样理解：如果不传输secret，而是由三方应用使用secret做签名，那么认证服务端为了验签，就必须保存一份应用secret的明文（虽然可能是经过对称加密的），这是一个风险点。</p>
-<p>而在请求中携带secret，看似恐怖，其实有https的保护，安全性并不是问题————当然，需要客户端保存好secret</p>
-
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2022/12/29/%E4%B8%89%E6%96%B9%E5%BA%94%E7%94%A8%E6%8E%88%E6%9D%83%E4%B8%8EOauth%E7%9A%84%E6%80%9D%E8%80%83/#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
       
     </div>
 
