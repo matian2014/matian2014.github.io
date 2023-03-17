@@ -28,7 +28,7 @@
 <meta property="og:description" content="ConcurrentHashMap 的实现比较复杂，里面涉及到的内容很多，而且有很多的性能优化的策略，想全部搞清楚比较困难，所以主要对里面感兴趣的并发的处理方面，相关的几个函数的实现看下，难免有理解不到位的地方，以后随时修改补充吧。 这里看的是 java 7 中的实现。 另外，推荐一篇文章，写的很详细： The Concurrency Of ConcurrentHashMap">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2019-06-29T04:26:25.000Z">
-<meta property="article:modified_time" content="2022-11-06T11:38:24.000Z">
+<meta property="article:modified_time" content="2023-03-09T03:38:38.197Z">
 <meta property="article:author" content="马天">
 <meta property="article:tag" content="java">
 <meta name="twitter:card" content="summary">
@@ -302,7 +302,7 @@
 <li>如果要插入的 key 不存在，预先创建一个 node，后续插入时直接使用</li>
 </ul>
 <p>scanAndLockForPut() 将在获取到锁后返回，使用头插法进行插入。获取链表的头节点时，使用的是 entryAt() 函数，通过 UNSAFE.getObjectVolatile() 从 table 中读取链表的头节点。虽然 table 的引用是 volatile 的，但是 table 中的元素并不是，为了保证可见性，需要使用 UNSAFE.getObjectVolatile() 执行 volatile 读。</p>
-<p>与 HashMap 类似，某个 Segment 内的元素数量超过了 threshold 时，会进行扩容，将 table 数组容量扩容为原来的两倍，之后定位索引的方式与 HashMap 是一致的，可参看<a href="/undefined.html" title="令人惊叹的HashMap—数据结构与hash函数">令人惊叹的HashMap—数据结构与hash函数</a>。因为使用了可重入锁，rehash() 也只有从 put 函数进入这一个入口，也是加锁的。需要留意的是 rehash 操作在遍历链表时，首先执行了这样一段代码：</p>
+<p>与 HashMap 类似，某个 Segment 内的元素数量超过了 threshold 时，会进行扩容，将 table 数组容量扩容为原来的两倍，之后定位索引的方式与 HashMap 是一致的，可参看<a href="/1d720228.html" title="令人惊叹的HashMap—数据结构与hash函数">令人惊叹的HashMap—数据结构与hash函数</a>。因为使用了可重入锁，rehash() 也只有从 put 函数进入这一个入口，也是加锁的。需要留意的是 rehash 操作在遍历链表时，首先执行了这样一段代码：</p>
 <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">HashEntry&lt;K,V&gt; lastRun = e;</span><br><span class="line"><span class="type">int</span> <span class="variable">lastIdx</span> <span class="operator">=</span> idx;</span><br><span class="line"><span class="keyword">for</span> (HashEntry&lt;K,V&gt; last = next;</span><br><span class="line">    last != <span class="literal">null</span>;</span><br><span class="line">    last = last.next) &#123;</span><br><span class="line">    <span class="type">int</span> <span class="variable">k</span> <span class="operator">=</span> last.hash &amp; sizeMask;</span><br><span class="line">    <span class="keyword">if</span> (k != lastIdx) &#123;</span><br><span class="line">        lastIdx = k;</span><br><span class="line">        lastRun = last;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line">newTable[lastIdx] = lastRun;</span><br></pre></td></tr></table></figure>
 
 <p>这一段代码是用来“Reuse consecutive sequence at same slot”：在遍历中尝试找到一个节点 lastRun，从这一个节点开始的之后的所有节点，都不需要移动位置，这一个操作看似多余，但其实“Statistically, at the default threshold, only about one-sixth of them need cloning when a table doubles.”</p>
@@ -415,7 +415,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">27</span>
+          <span class="site-state-item-count">29</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
