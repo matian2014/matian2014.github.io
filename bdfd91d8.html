@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 6.3.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.jpg">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon.jpg">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"matian.connorma.cn","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="之前自己使用rocketmq时写过一篇笔记，近期需要搭建一个rocketmq集群，发现rocketmq项目已经从apache毕业正式成为顶级项目，这里对笔记内容进行了更新，使用的版本和部署方式也按照rocketmq 4.9.4版本重新进行了整理  rocketmq集群角色rocketmq架构与kafka非常相似：rocketmq集群角色分为namesrv和broker，namesrv负责brok">
+<meta property="og:type" content="article">
+<meta property="og:title" content="rocketmq集群搭建">
+<meta property="og:url" content="http://matian.connorma.cn/bdfd91d8.html">
+<meta property="og:site_name" content="马天">
+<meta property="og:description" content="之前自己使用rocketmq时写过一篇笔记，近期需要搭建一个rocketmq集群，发现rocketmq项目已经从apache毕业正式成为顶级项目，这里对笔记内容进行了更新，使用的版本和部署方式也按照rocketmq 4.9.4版本重新进行了整理  rocketmq集群角色rocketmq架构与kafka非常相似：rocketmq集群角色分为namesrv和broker，namesrv负责brok">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2020-09-09T15:05:02.000Z">
+<meta property="article:modified_time" content="2023-03-29T03:11:03.117Z">
+<meta property="article:author" content="马天">
+<meta property="article:tag" content="软件部署">
+<meta property="article:tag" content="rocketmq">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://matian.connorma.cn/bdfd91d8.html">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>rocketmq集群搭建 | 马天</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">马天</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://matian.connorma.cn/bdfd91d8.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="马天">
+      <meta itemprop="description" content="程序猿">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="马天">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          rocketmq集群搭建
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-09-09 23:05:02" itemprop="dateCreated datePublished" datetime="2020-09-09T23:05:02+08:00">2020-09-09</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E8%BD%AF%E4%BB%B6%E9%83%A8%E7%BD%B2/" itemprop="url" rel="index"><span itemprop="name">软件部署</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <blockquote>
+<p>之前自己使用rocketmq时写过一篇笔记，近期需要搭建一个rocketmq集群，发现rocketmq项目已经从apache毕业正式成为顶级项目，这里对笔记内容进行了更新，使用的版本和部署方式也按照<a target="_blank" rel="noopener" href="https://github.com/apache/rocketmq/releases/tag/rocketmq-all-4.9.4">rocketmq 4.9.4版本</a>重新进行了整理</p>
+</blockquote>
+<h2 id="rocketmq集群角色"><a href="#rocketmq集群角色" class="headerlink" title="rocketmq集群角色"></a>rocketmq集群角色</h2><p>rocketmq架构与kafka非常相似：rocketmq集群角色分为namesrv和broker，namesrv负责broker的注册和管理、消息向broker上队列的投递&#x2F;消费的路由，是管理节点。broker负责消息的存储、投递、查询，相当于工作节点，向指定的所有namesrv分别注册自身及管理的队列信息；每组broker可分为master和slave，写操作只可在master进行，读操作可以在任意节点进行。</p>
+<p>producer向namesrv查询队列所在的broker，向这一组broker的master节点写入；consumer向namesrv查询队列所在的broker，向这一组broker的master或slave读取消息。不同组broker之间是数据分片的形式，每组broker持有一部分数据，因此可以通过扩容broker扩展消息存储量和读写性能。</p>
+ <span id="more"></span>
+
+<h2 id="高可用方案"><a href="#高可用方案" class="headerlink" title="高可用方案"></a>高可用方案</h2><p>多个namesrv之间互相不同步数据，而是每个namesrv节点都可以提供完整服务，因此可以直接集群部署、向外部提供namesrv列表来保证HA。</p>
+<p>而broker则是主从模式，有以下几种集群方案：</p>
+<ul>
+<li>部署多组broker，每组broker只部署一个master节点。这样每个broker都是单点，一旦master宕机则这组broker涉及到的队列、消息不可用，直到节点恢复</li>
+<li>部署多组broker，每组broker部署master和slave节点，主从之间异步写入进行数据复制。这样每组broker具备主从备份，单个节点宕机仍可从其他节点读取，不过因为是异步写入，主从同步延迟会导致数据不一致</li>
+<li>部署多组broker，每组broker部署master和slave节点，主从同步写入进行数据复制。相比第二种方式可以避免异步写入情况下master宕机带来的数据不一致，但是写入延迟必然增加——此所谓CAP不可得兼也</li>
+</ul>
+<p>在集群中，不同组的broker通过broker-name区分，同一组broker的不同节点通过broker-id区分，且约定master的broker-id为0</p>
+<p>因为master&#x2F;salve节点只是broker-id不同，配置和启动方式没有区别，因此这里只演示第一种模式——多组broker、每组broker只包含master节点的集群搭建。</p>
+<h2 id="部署情况"><a href="#部署情况" class="headerlink" title="部署情况"></a>部署情况</h2><p>需要部署：</p>
+<ul>
+<li>rocketmq-namesrv，是broker的注册中心</li>
+<li>broker，消息的收发处理</li>
+<li>dashbroad，管理页面</li>
+</ul>
+<p>防火墙需要开放以下端口：</p>
+<ul>
+<li>namesrv监听端口，默认为9876</li>
+<li>broker监听端口，用于broker与namesrv&#x2F;client的通信，默认为：10911，10912， 10909</li>
+<li>dashboard监听端口，默认为8080</li>
+</ul>
+<p>部署路径为：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/home/rocketmq/rocketmq-4.9.4</span><br></pre></td></tr></table></figure>
+
+<h3 id="安装java"><a href="#安装java" class="headerlink" title="安装java"></a>安装java</h3><p>此处不述，有需要可参考<a target="_blank" rel="noopener" href="https://gitee.com/connormma/quick_launch_tools/blob/master/jdk/linux_amd64/jdk_install.sh">java快速部署工具</a></p>
+<h3 id="部署namesrv"><a href="#部署namesrv" class="headerlink" title="部署namesrv"></a>部署namesrv</h3><p>创建namesrv配置文件，</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cd /home/rocketmq/rocketmq-4.9.4/conf/</span><br><span class="line">touch namesrv.properties</span><br></pre></td></tr></table></figure>
+
+<p>编辑配置文件，视需求增加&#x2F;修改配置，如：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"># namesrv监听端口</span><br><span class="line">listenPort=9876</span><br><span class="line"># 是否启用顺序消息</span><br><span class="line">orderMessageEnable=true</span><br></pre></td></tr></table></figure>
+
+<p>修改bin&#x2F;runserver.sh，视情况调整namesrv堆内存和堆外内存等的大小：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">视情况调整namesrv堆内存和堆外内存等的大小</span></span><br><span class="line">choose_gc_options()</span><br><span class="line">&#123;</span><br><span class="line">    # Example of JAVA_MAJOR_VERSION value : &#x27;1&#x27;, &#x27;9&#x27;, &#x27;10&#x27;, &#x27;11&#x27;, ...</span><br><span class="line">    # &#x27;1&#x27; means releases befor Java 9</span><br><span class="line">    JAVA_MAJOR_VERSION=$(&quot;$JAVA&quot; -version 2&gt;&amp;1 | sed -r -n &#x27;s/.* version &quot;([0-9]*).*$/\1/p&#x27;)</span><br><span class="line">    if [ -z &quot;$JAVA_MAJOR_VERSION&quot; ] || [ &quot;$JAVA_MAJOR_VERSION&quot; -lt &quot;9&quot; ] ; then</span><br><span class="line">      JAVA_OPT=&quot;$&#123;JAVA_OPT&#125; -server -Xms4g -Xmx4g -Xmn2g -XX:MetaspaceSize=128m -XX:MaxMetaspaceSize=320m&quot;</span><br><span class="line">      JAVA_OPT=&quot;$&#123;JAVA_OPT&#125; -XX:+UseConcMarkSweepGC -XX:+UseCMSCompactAtFullCollection -XX:CMSInitiatingOccupancyFraction=70 -XX:+CMSParallelRemarkEnabled -XX:SoftRefLRUPolicyMSPerMB=0 -XX:+CMSClassUnloadingEnabled -XX:SurvivorRatio=8 -XX:-UseParNewGC&quot;</span><br><span class="line">      JAVA_OPT=&quot;$&#123;JAVA_OPT&#125; -verbose:gc -Xloggc:$&#123;GC_LOG_DIR&#125;/rmq_srv_gc_%p_%t.log -XX:+PrintGCDetails -XX:+PrintGCDateStamps&quot;</span><br><span class="line">      JAVA_OPT=&quot;$&#123;JAVA_OPT&#125; -XX:+UseGCLogFileRotation -XX:NumberOfGCLogFiles=5 -XX:GCLogFileSize=30m&quot;</span><br><span class="line">    else</span><br><span class="line">      JAVA_OPT=&quot;$&#123;JAVA_OPT&#125; -server -Xms4g -Xmx4g -XX:MetaspaceSize=128m -XX:MaxMetaspaceSize=320m&quot;</span><br><span class="line">      JAVA_OPT=&quot;$&#123;JAVA_OPT&#125; -XX:+UseG1GC -XX:G1HeapRegionSize=16m -XX:G1ReservePercent=25 -XX:InitiatingHeapOccupancyPercent=30 -XX:SoftRefLRUPolicyMSPerMB=0&quot;</span><br><span class="line">      JAVA_OPT=&quot;$&#123;JAVA_OPT&#125; -Xlog:gc*:file=$&#123;GC_LOG_DIR&#125;/rmq_srv_gc_%p_%t.log:time,tags:filecount=5,filesize=30M&quot;</span><br><span class="line">    fi</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>启动namesrv，启动时需要使用-c指定配置文件</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cd /home/rocketmq/rocketmq-4.9.4/bin &amp;&amp;  nohup sh mqnamesrv  -c ../conf/namesrv.properties &gt; /dev/null 2&gt;&amp;1 &amp;</span><br></pre></td></tr></table></figure>
+
+<p>默认日志输出到${user.home}&#x2F;logs下，即启动进程的用户目录下logs内，需要修改则改动conf&#x2F;logback_namesrv.xml</p>
+<h3 id="部署broker"><a href="#部署broker" class="headerlink" title="部署broker"></a>部署broker</h3><p>broker可集群化部署，多组broker之间使用brokerName区分</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cd /home/rocketmq/rocketmq-4.9.4/conf</span><br></pre></td></tr></table></figure>
+
+<p>修改broker.conf文件，关键配置如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"># cluster名</span><br><span class="line">brokerClusterName = DefaultCluster</span><br><span class="line"># broker名称，多组broker之间使用brokerName区分</span><br><span class="line">brokerName = broker-a</span><br><span class="line"># 一组broker内，id为0的为master，其他为slave</span><br><span class="line">brokerId = 0</span><br><span class="line"># 指定namesrv地址，多个地址则使用&#x27;;&#x27;分割</span><br><span class="line">namesrvAddr=localhost:9876</span><br><span class="line"># 启用acl</span><br><span class="line">aclEnable=true</span><br></pre></td></tr></table></figure>
+
+<p>如果需要指定broker注册的IP，可以在配置文件中使用brokerIP1指定</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"># 指定broker注册的IP</span><br><span class="line"># 如果需要外网客户端连接，可指定为公网地址，比如：</span><br><span class="line">brokerIP1 = 192.168.226.138</span><br></pre></td></tr></table></figure>
+
+<p>broker默认JVM配置中内存Xms为8G，可以视情况调整：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cd /home/rocketmq/rocketmq-4.9.4/bin</span><br></pre></td></tr></table></figure>
+
+<p>修改runbroker.sh：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">视情况调整broker堆内存和堆外内存大小</span></span><br><span class="line">JAVA_OPT=&quot;$&#123;JAVA_OPT&#125; -server -Xms8g -Xmx8g&quot;</span><br><span class="line">JAVA_OPT=&quot;$&#123;JAVA_OPT&#125; -XX:MaxDirectMemorySize=15g&quot;</span><br></pre></td></tr></table></figure>
+
+<p>启动broker：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cd /home/rocketmq/rocketmq-4.9.4/bin &amp;&amp;  nohup sh mqbroker -c ../conf/broker.conf  &amp;</span><br></pre></td></tr></table></figure>
+
+<p>对于broker主从，区别只是brokerId，master节点的brokerId约定为0，其他slave按情况分配；对于多组broker的情况，多组broker只需要修改brokerName进行区分</p>
+<h3 id="acl配置"><a href="#acl配置" class="headerlink" title="acl配置"></a>acl配置</h3><p>rocketmq支持acl配置多用户角色、权限，以控制对broker的访问、操作权限</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">conf下创建acl目录，broker启动时默认读取此目录下配置文件</span></span><br><span class="line">mkdir /home/rocketmq/rocketmq-4.9.4/conf/acl</span><br><span class="line">cd /home/rocketmq/rocketmq-4.9.4/conf/acl</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">conf目录下有plain_acl.yml示例</span></span><br><span class="line">cp /home/rocketmq/rocketmq-4.9.4/conf/plain_acl.yml .</span><br></pre></td></tr></table></figure>
+
+<p>在plain_acl.yml可管理用户账号及权限</p>
+<p>同时需要修改broker.conf，开启acl：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"># 开启acl</span><br><span class="line">aclEnable=true</span><br></pre></td></tr></table></figure>
+
+<p>重启broker进程后生效</p>
+<h3 id="部署rocketmq-dashbroad"><a href="#部署rocketmq-dashbroad" class="headerlink" title="部署rocketmq-dashbroad"></a>部署rocketmq-dashbroad</h3><p>为了方便直接使用docker部署rocketmq-dashbroad</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">docker pull apacherocketmq/rocketmq-dashboard:latest</span><br><span class="line"></span><br><span class="line">docker run -d --name rocketmq-dashboard -e &quot;JAVA_OPTS=-Drocketmq.namesrv.addr=192.168.226.138:9876 -Drocketmq.config.accessKey=rocketmq -Drocketmq.config.secretKey=rocketmq.123&quot; -p 8080:8080 -t apacherocketmq/rocketmq-dashboard:latest</span><br></pre></td></tr></table></figure>
+
+<p>其中，rocketmq.namesrv.addr指定namesrv地址(多个地址则使用’;’分割)，需要注意的是：</p>
+<ol>
+<li>使用docker默认网络模式情况下，容器具有单独网络空间，地址不能使用localhost&#x2F;127.0.0.1，需要指定为namesrv所在的内网&#x2F;外网地址</li>
+<li>因为rocketmq开启了acl，dashbroad需要指定rocketmq.config.accessKey、rocketmq.config.secretKey</li>
+<li>dashbroad默认监听8080端口，这里映射到了主机8080端口</li>
+</ol>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/%E8%BD%AF%E4%BB%B6%E9%83%A8%E7%BD%B2/" rel="tag"># 软件部署</a>
+              <a href="/tags/rocketmq/" rel="tag"># rocketmq</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/94439062.html" rel="prev" title="java类加载器问题思考与简单模拟热部署">
+      <i class="fa fa-chevron-left"></i> java类加载器问题思考与简单模拟热部署
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/cb87a2ee.html" rel="next" title="Spring Boot @Import的使用">
+      Spring Boot @Import的使用 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#rocketmq%E9%9B%86%E7%BE%A4%E8%A7%92%E8%89%B2"><span class="nav-number">1.</span> <span class="nav-text">rocketmq集群角色</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%AB%98%E5%8F%AF%E7%94%A8%E6%96%B9%E6%A1%88"><span class="nav-number">2.</span> <span class="nav-text">高可用方案</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%83%A8%E7%BD%B2%E6%83%85%E5%86%B5"><span class="nav-number">3.</span> <span class="nav-text">部署情况</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%89%E8%A3%85java"><span class="nav-number">3.1.</span> <span class="nav-text">安装java</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%83%A8%E7%BD%B2namesrv"><span class="nav-number">3.2.</span> <span class="nav-text">部署namesrv</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%83%A8%E7%BD%B2broker"><span class="nav-number">3.3.</span> <span class="nav-text">部署broker</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#acl%E9%85%8D%E7%BD%AE"><span class="nav-number">3.4.</span> <span class="nav-text">acl配置</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%83%A8%E7%BD%B2rocketmq-dashbroad"><span class="nav-number">3.5.</span> <span class="nav-text">部署rocketmq-dashbroad</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">马天</p>
+  <div class="site-description" itemprop="description">程序猿</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">29</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">10</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">13</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/matian2014" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;matian2014" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:matian1103@qq.com" title="E-Mail → mailto:matian1103@qq.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2023</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">马天</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>
