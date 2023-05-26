@@ -28,7 +28,7 @@
 <meta property="og:description" content="最近需要为系统添加三方应用接入的功能，对接入的三方应用允许获取用户的部分信息——但显然，不能将用户的账号、密码暴露给三方应用。这个过程中产生了一些思考，在此简单记录下。如果要一句话总结的话，就是：多学知识，学习前人的成果。 三方应用接入需要解决的问题三方应用接入关键的是服务端能够识别请求来源，判断是否是已授权的三方应用，所以这首先是一个身份识别的问题。 第二个隐含的问题是系统权限设计的问题：三方应">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2022-12-29T04:10:31.000Z">
-<meta property="article:modified_time" content="2023-05-23T03:40:21.178Z">
+<meta property="article:modified_time" content="2023-05-26T00:47:38.994Z">
 <meta property="article:author" content="马天">
 <meta property="article:tag" content="方法论">
 <meta property="article:tag" content="OAuth">
@@ -221,8 +221,8 @@
 <ul>
 <li>服务端为三方应用分配一个可公开的ID、一个不可公开的secret</li>
 <li>三方应用使用secret对ID签名得到sign，携带自身ID与sign向服务端请求一个随机数（面向管理端子系统，默认用户同意授权），这一随机数和三方应用ID一一对应、在一定时间内有效</li>
-<li>三方应用使用secret对随机数签名，携带签名和自身ID发起请求</li>
-<li>服务端校验根据三方应用ID、随机数验证签名，从而确认请求来自合法的三方应用</li>
+<li>三方应用使用secret对随机数及时间戳签名，携带签名、时间戳和自身ID发起请求</li>
+<li>服务端校验根据三方应用ID、随机数验证签名，并比对入参时间戳限制请求发起时间，从而确认请求来自合法的三方应用</li>
 </ul>
 <p>这里身份认证的可信来自于签名算法的单向和secret的私密——但也并不是非常完善的，尤其是与OAuth协议的流程对比之后。不过，<strong>稍进一步分析之后也几乎可以得到结论是，不使用https（或者类似https的非对称、对称组合）的情况下，怎么做也不安全</strong>。</p>
  <span id="more"></span>
@@ -263,6 +263,7 @@
 </ol>
 <p>不安全，步骤3中的请求参数泄漏后，同样参数的请求每次的sign相同，可以任意做重放攻击</p>
 <p>即使使用申请token的模式、申请token的过程做到可信，携带token的请求如果不使用https，也无安全性可言；即使请求使用https，在客户端存储的token也有暴露的风险，只能从有效期、token状态、绑定终端等做补救。</p>
+<p>但是再进一步：做到了以上手段，认证服务端对应用客户端的识别基本可靠了，但是，应用客户端怎么确认收到的响应是来自真实的认证服务端呢？</p>
 
     </div>
 
