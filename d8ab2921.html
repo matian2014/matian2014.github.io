@@ -28,7 +28,7 @@
 <meta property="og:description" content="项目打包时，直接用spring-boot maven plugin之类插件组装出一个包含了所有依赖的jar，即fat-jar的形式，可以直接启动，部署方便。但是并不是任何时候fat-jar都是最优解。 依赖文件分离打包在几种场景下的优化稳定版本依赖包的分离对部署的优化在项目开发中，依赖包我们期望是稳定的：版本的升级一定是审慎进行的，新依赖的加入也需要考量。也因此，在项目部署时，如果只打包源代码到一">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2019-03-03T00:39:56.000Z">
-<meta property="article:modified_time" content="2023-03-20T06:41:28.582Z">
+<meta property="article:modified_time" content="2023-11-02T07:37:26.084Z">
 <meta property="article:author" content="马天">
 <meta property="article:tag" content="java">
 <meta name="twitter:card" content="summary">
@@ -219,6 +219,7 @@
 
 <h3 id="不得不使用指定classpath的情况——依赖包面向不同OS-x2F-硬件架构"><a href="#不得不使用指定classpath的情况——依赖包面向不同OS-x2F-硬件架构" class="headerlink" title="不得不使用指定classpath的情况——依赖包面向不同OS&#x2F;硬件架构"></a>不得不使用指定classpath的情况——依赖包面向不同OS&#x2F;硬件架构</h3><p>这里直接举一个例子</p>
 <p>当我们集成luben zstd做文件压缩时，zstd的实现需要通过jni调用so&#x2F;dll包，对不同OS&#x2F;硬件架构需要引入不同的依赖包，此时启动项目时需要对不同的OS&#x2F;硬件架构选择对应的依赖包</p>
+<p>在很多开源项目中也可以看到，通过分离依赖包，可以根据部署情况替换依赖包版本。结合动态加载的机制，那么可以通过添加依赖jar扩展能力——比如hadoop扩展支持的shuffle实现、扩展支持的存储等</p>
 <h3 id="另一种情况：使用classpath引入线上依赖包"><a href="#另一种情况：使用classpath引入线上依赖包" class="headerlink" title="另一种情况：使用classpath引入线上依赖包"></a>另一种情况：使用classpath引入线上依赖包</h3><p>举一个例子，在大数据平台计算集群中，通常只需要客户端提供一个shade jar，而对于必须引用的hadoop依赖，通过线上环境的启动参数指定classpath引入的，这样对平台依赖的管理和升级方便。</p>
 <h2 id="依赖文件分离打包示例"><a href="#依赖文件分离打包示例" class="headerlink" title="依赖文件分离打包示例"></a>依赖文件分离打包示例</h2><p>这里给出一个简单的例子，演示如何使用maven plugin快速完成依赖分离打包和启动方式</p>
 <p>maven默认的打包插件得到的是一个thin-jar，不过并没有自动的将依赖包归集到一起，可以使用如下配置来完成：</p>
@@ -330,7 +331,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">29</span>
+          <span class="site-state-item-count">30</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>

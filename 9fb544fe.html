@@ -20,20 +20,21 @@
     var CONFIG = {"hostname":"matian.connorma.cn","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
   </script>
 
-  <meta name="description" content="在java并发编程实战的4.2节“实例封闭”里介绍了通过封闭机制确保线程安全，这里结合 java SynchronizedList 来了解下这一实现过程。 当需要将一个 List 包装为线程安全时，可以如下调用： 12List l &#x3D; new LinkedList();List l2 &#x3D; Collections.synchronizedList(l);  之后通过 l2 对 l 的一切操作都将是线">
+  <meta name="description" content="使用mysql 8版本，搭建一主一从  主节点：192.168.226.130，mysql端口：3306 从节点：192.168.226.137，mysql端口：3306 主节点mysql同步用户：repl，密码：repl.123">
 <meta property="og:type" content="article">
-<meta property="og:title" content="结合SynchronizedList学习使用实例封闭实现线程安全的类">
-<meta property="og:url" content="http://matian.connorma.cn/4c8881b2.html">
+<meta property="og:title" content="mysql主从搭建">
+<meta property="og:url" content="http://matian.connorma.cn/9fb544fe.html">
 <meta property="og:site_name" content="马天">
-<meta property="og:description" content="在java并发编程实战的4.2节“实例封闭”里介绍了通过封闭机制确保线程安全，这里结合 java SynchronizedList 来了解下这一实现过程。 当需要将一个 List 包装为线程安全时，可以如下调用： 12List l &#x3D; new LinkedList();List l2 &#x3D; Collections.synchronizedList(l);  之后通过 l2 对 l 的一切操作都将是线">
+<meta property="og:description" content="使用mysql 8版本，搭建一主一从  主节点：192.168.226.130，mysql端口：3306 从节点：192.168.226.137，mysql端口：3306 主节点mysql同步用户：repl，密码：repl.123">
 <meta property="og:locale" content="zh_CN">
-<meta property="article:published_time" content="2018-01-02T14:44:47.000Z">
-<meta property="article:modified_time" content="2023-03-09T03:38:38.216Z">
+<meta property="article:published_time" content="2018-03-02T03:57:14.000Z">
+<meta property="article:modified_time" content="2023-11-02T07:44:03.629Z">
 <meta property="article:author" content="马天">
-<meta property="article:tag" content="java">
+<meta property="article:tag" content="软件部署">
+<meta property="article:tag" content="rocketmq">
 <meta name="twitter:card" content="summary">
 
-<link rel="canonical" href="http://matian.connorma.cn/4c8881b2.html">
+<link rel="canonical" href="http://matian.connorma.cn/9fb544fe.html">
 
 
 <script id="page-configurations">
@@ -46,7 +47,7 @@
   };
 </script>
 
-  <title>结合SynchronizedList学习使用实例封闭实现线程安全的类 | 马天</title>
+  <title>mysql主从搭建 | 马天</title>
   
 
 
@@ -166,7 +167,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://matian.connorma.cn/4c8881b2.html">
+    <link itemprop="mainEntityOfPage" href="http://matian.connorma.cn/9fb544fe.html">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.gif">
@@ -179,7 +180,7 @@
     </span>
       <header class="post-header">
         <h1 class="post-title" itemprop="name headline">
-          结合SynchronizedList学习使用实例封闭实现线程安全的类
+          mysql主从搭建
         </h1>
 
         <div class="post-meta">
@@ -189,7 +190,7 @@
               </span>
               <span class="post-meta-item-text">发表于</span>
 
-              <time title="创建时间：2018-01-02 22:44:47" itemprop="dateCreated datePublished" datetime="2018-01-02T22:44:47+08:00">2018-01-02</time>
+              <time title="创建时间：2018-03-02 11:57:14" itemprop="dateCreated datePublished" datetime="2018-03-02T11:57:14+08:00">2018-03-02</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -197,7 +198,7 @@
               </span>
               <span class="post-meta-item-text">分类于</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/java/" itemprop="url" rel="index"><span itemprop="name">java</span></a>
+                  <a href="/categories/%E8%BD%AF%E4%BB%B6%E9%83%A8%E7%BD%B2/" itemprop="url" rel="index"><span itemprop="name">软件部署</span></a>
                 </span>
             </span>
 
@@ -212,35 +213,34 @@
     <div class="post-body" itemprop="articleBody">
 
       
-        <p>在java并发编程实战的4.2节“实例封闭”里介绍了通过封闭机制确保线程安全，这里结合 java SynchronizedList 来了解下这一实现过程。</p>
-<p>当需要将一个 List 包装为线程安全时，可以如下调用：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">List</span> <span class="variable">l</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">LinkedList</span>();</span><br><span class="line"><span class="type">List</span> <span class="variable">l2</span> <span class="operator">=</span> Collections.synchronizedList(l);</span><br></pre></td></tr></table></figure>
+        <p>使用mysql 8版本，搭建一主一从</p>
+<ul>
+<li>主节点：192.168.226.130，mysql端口：3306</li>
+<li>从节点：192.168.226.137，mysql端口：3306</li>
+<li>主节点mysql同步用户：repl，密码：repl.123</li>
+</ul>
+<span id="more"></span>
 
-<p>之后通过 l2 对 l 的一切操作都将是线程安全的。<span id="more"></span>看一下这一方法：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> &lt;T&gt; List&lt;T&gt; <span class="title function_">synchronizedList</span><span class="params">(List&lt;T&gt; list)</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> (list <span class="keyword">instanceof</span> RandomAccess ?</span><br><span class="line">                <span class="keyword">new</span> <span class="title class_">SynchronizedRandomAccessList</span>&lt;&gt;(list) :</span><br><span class="line">                <span class="keyword">new</span> <span class="title class_">SynchronizedList</span>&lt;&gt;(list));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="主节点配置"><a href="#主节点配置" class="headerlink" title="主节点配置"></a>主节点配置</h2><p>主节点配置文件：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"># 在mysqld部分下添加</span><br><span class="line"></span><br><span class="line"># binlog文件名</span><br><span class="line">log-bin=binlog</span><br><span class="line"># master节点id</span><br><span class="line">server-id=1000</span><br></pre></td></tr></table></figure>
 
-<p>这里我们传入的是一个 LinkedList，那么赋值给 l2 的返回值应当是一个 SynchronizedList 的实例。如果传入的是一个 ArrayList，那么将返回 SynchronizedRandomAccessList 的实例，这是 SynchronizedList 的一个子类，是同样的处理方式。</p>
-<p>看下 SynchronizedList。首先，在初始化函数中，保存传入的参数到 final 域 list 中，</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">final</span> List&lt;E&gt; list;</span><br><span class="line"></span><br><span class="line">SynchronizedList(List&lt;E&gt; list) &#123;</span><br><span class="line">    <span class="built_in">super</span>(list);</span><br><span class="line">    <span class="built_in">this</span>.list = list;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">重启主节点</span></span><br><span class="line">systemctl restart mysql</span><br></pre></td></tr></table></figure>
 
-<p>而 SynchronizedList 中所有访问 list 的方法都使用同一个对象 mutex 进行了加锁，比如 hashCode() 方法：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">add</span><span class="params">(<span class="type">int</span> index, E element)</span> &#123;</span><br><span class="line">    <span class="keyword">synchronized</span> (mutex) &#123;list.add(index, element);&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>root用户操作主节点，添加repl用户</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">CREATE</span> <span class="keyword">USER</span> <span class="string">&#x27;repl&#x27;</span>@<span class="string">&#x27;192.168.226.%&#x27;</span> IDENTIFIED <span class="keyword">BY</span> <span class="string">&#x27;repl.123&#x27;</span>;</span><br><span class="line"><span class="keyword">GRANT</span> REPLICATION SLAVE <span class="keyword">ON</span> <span class="operator">*</span>.<span class="operator">*</span> <span class="keyword">TO</span> <span class="string">&#x27;repl&#x27;</span>@<span class="string">&#x27;192.168.226.%&#x27;</span>;</span><br><span class="line">flush privileges;</span><br></pre></td></tr></table></figure>
 
-<p>mutex 是其父类 SynchronizedCollection 的一个域，顾名思义，用于加锁，</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">final</span> Object mutex;     <span class="comment">// Object on which to synchronize</span></span><br></pre></td></tr></table></figure>
+<p>添加用户repl，限制可从192.168.226.0&#x2F;24网段访问，从节点在此网段内</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">reset master;</span><br><span class="line"><span class="keyword">show</span> master status;</span><br></pre></td></tr></table></figure>
 
-<p>SynchronizedList 是实现了 List 接口的，那么 List 接口的方法呢？</p>
-<p>可以看到，SynchronizedList 的父类 SynchronizedCollection 实现了 Collection 接口（List 的父类），而 List 接口中添加的方法在 SynchronizedList 也得到了实现，无一例外，这些方法都使用了 mutex 加锁进行了同步。</p>
-<p>这是一个装饰者模式的例子，对 l 的所有操作被封装到了 SynchronizedList 中，都进行了同步，使得 l 指向的容器成为了一个线程安全的对象。在使用封装的情况下，对 l 对象的所有访问的代码路径都是容易发现和控制的。</p>
-<p>但是 SynchronizedList 并不是使l完全的线程安全了，正如 java 并发编程实践所说，如果包装器拥有对容器对象的唯一引用，那么可以确保容器对象 l 是线程安全的，而不能保证是唯一引用时，外部如果要正确的作为线程安全对象使用，对l容器的一切操作都应该通过包装器进行。</p>
-<p>举一个例子如下：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">List</span> <span class="variable">l</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">LinkedList</span>&lt;&gt;();</span><br><span class="line"><span class="type">List</span> <span class="variable">l2</span> <span class="operator">=</span> Collections.synchronizedList(l);</span><br><span class="line">l.add(<span class="keyword">new</span> <span class="title class_">Object</span>());</span><br><span class="line">l2.add(<span class="keyword">new</span> <span class="title class_">Object</span>());</span><br></pre></td></tr></table></figure>
+<p>因为是首次初始化master，执行了reset master，将binlog清空，在此命令之前的操作不会同步；已建立主从关系的master节点不可执行，否则主从同步出错</p>
+<h2 id="从节点配置"><a href="#从节点配置" class="headerlink" title="从节点配置"></a>从节点配置</h2><p>从节点配置文件：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"># 在mysqld部分下添加</span><br><span class="line"></span><br><span class="line"># 从节点id</span><br><span class="line">server-id=1001</span><br><span class="line"># 从节点开启只读</span><br><span class="line">read_only=1</span><br><span class="line">super_read_only=1</span><br></pre></td></tr></table></figure>
 
-<p>打个断点，Force Step Into 一下可以发现，以上代码中，l.add(new Object()) 调用 LinkedList类的add(E e) 方法；l2.add(new Object()) 则调用了 SynchronizedCollection 类的 add(E e) 方法，是通过 SynchronizedList 类的代理来实现的，是加锁同步了的。也就是说，我们在对容器对象l进行包装前保留了它的一个引用 l，那么对其进行包装后，我们仍然可以通过 l 不带同步的访问原容器对象。</p>
-<p>所以在 synchronizedCollection 类的注释里强调：</p>
-<blockquote>
-<p>In order to guarantee serial access, it is critical that <strong>all</strong> access to the backing collection is accomplished through the returned collection.</p>
-</blockquote>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">重启从节点</span></span><br><span class="line">systemctl restart mysql</span><br></pre></td></tr></table></figure>
+
+<p>root用户操作从节点，设置从192.168.226.130主节点同步：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">stop slave;</span><br><span class="line">reset slave;</span><br><span class="line"># mysql <span class="number">8</span>, 需要指定GET_MASTER_PUBLIC_KEY<span class="operator">=</span><span class="number">1</span>加密传输</span><br><span class="line"># binlog<span class="number">.000001</span>、<span class="number">157</span>来自主节点`<span class="keyword">show</span> master status`执行结果</span><br><span class="line">CHANGE REPLICATION SOURCE <span class="keyword">TO</span> SOURCE_HOST<span class="operator">=</span><span class="string">&#x27;192.168.226.130&#x27;</span>,SOURCE_PORT<span class="operator">=</span><span class="number">3307</span>,SOURCE_USER<span class="operator">=</span><span class="string">&#x27;repl&#x27;</span>,SOURCE_PASSWORD<span class="operator">=</span><span class="string">&#x27;repl.123&#x27;</span>,SOURCE_LOG_FILE<span class="operator">=</span><span class="string">&#x27;binlog.000001&#x27;</span>,SOURCE_LOG_POS<span class="operator">=</span><span class="number">157</span>,GET_MASTER_PUBLIC_KEY<span class="operator">=</span><span class="number">1</span>;</span><br><span class="line"><span class="keyword">start</span> slave;</span><br><span class="line"><span class="keyword">show</span> slave status;</span><br></pre></td></tr></table></figure>
+
 
     </div>
 
@@ -250,7 +250,8 @@
 
       <footer class="post-footer">
           <div class="post-tags">
-              <a href="/tags/java/" rel="tag"># java</a>
+              <a href="/tags/%E8%BD%AF%E4%BB%B6%E9%83%A8%E7%BD%B2/" rel="tag"># 软件部署</a>
+              <a href="/tags/rocketmq/" rel="tag"># rocketmq</a>
           </div>
 
         
@@ -259,12 +260,12 @@
         
     <div class="post-nav">
       <div class="post-nav-item">
-    <a href="/9fb544fe.html" rel="prev" title="mysql主从搭建">
-      <i class="fa fa-chevron-left"></i> mysql主从搭建
+    <a href="/c45cf467.html" rel="prev" title="JDBC邂逅——连接数据库与执行语句">
+      <i class="fa fa-chevron-left"></i> JDBC邂逅——连接数据库与执行语句
     </a></div>
       <div class="post-nav-item">
-    <a href="/b8b79bdf.html" rel="next" title="FileChannel读写文件与filp()等方法">
-      FileChannel读写文件与filp()等方法 <i class="fa fa-chevron-right"></i>
+    <a href="/4c8881b2.html" rel="next" title="结合SynchronizedList学习使用实例封闭实现线程安全的类">
+      结合SynchronizedList学习使用实例封闭实现线程安全的类 <i class="fa fa-chevron-right"></i>
     </a></div>
     </div>
       </footer>
@@ -324,6 +325,7 @@
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%BB%E8%8A%82%E7%82%B9%E9%85%8D%E7%BD%AE"><span class="nav-number">1.</span> <span class="nav-text">主节点配置</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BB%8E%E8%8A%82%E7%82%B9%E9%85%8D%E7%BD%AE"><span class="nav-number">2.</span> <span class="nav-text">从节点配置</span></a></li></ol></div>
       </div>
       <!--/noindex-->
 
