@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 6.3.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.jpg">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon.jpg">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"matian.connorma.cn","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="mysql8引入with语法，可将一个临时表作为本次查询生命周期内的公共表达式使用（Common Table Expressions，CTE），来简化复杂的嵌套查询，并可使用with recursive语法进行递归查询。本文对基本的使用方法进行示例，并给出了一个实际的应用场景：用户邀请记录查询">
+<meta property="og:type" content="article">
+<meta property="og:title" content="mysql8 with使用与场景示例：用户邀请记录查询">
+<meta property="og:url" content="http://matian.connorma.cn/81ee92e1.html">
+<meta property="og:site_name" content="马天">
+<meta property="og:description" content="mysql8引入with语法，可将一个临时表作为本次查询生命周期内的公共表达式使用（Common Table Expressions，CTE），来简化复杂的嵌套查询，并可使用with recursive语法进行递归查询。本文对基本的使用方法进行示例，并给出了一个实际的应用场景：用户邀请记录查询">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2022-04-07T14:02:11.000Z">
+<meta property="article:modified_time" content="2023-11-17T09:51:18.331Z">
+<meta property="article:author" content="马天">
+<meta property="article:tag" content="mysql">
+<meta property="article:tag" content="场景示例">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://matian.connorma.cn/81ee92e1.html">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>mysql8 with使用与场景示例：用户邀请记录查询 | 马天</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">马天</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://matian.connorma.cn/81ee92e1.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="马天">
+      <meta itemprop="description" content="程序猿">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="马天">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          mysql8 with使用与场景示例：用户邀请记录查询
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2022-04-07 22:02:11" itemprop="dateCreated datePublished" datetime="2022-04-07T22:02:11+08:00">2022-04-07</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/mysql/" itemprop="url" rel="index"><span itemprop="name">mysql</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>mysql8引入with语法，可将一个临时表作为本次查询生命周期内的公共表达式使用（Common Table Expressions，CTE），来简化复杂的嵌套查询，并可使用with recursive语法进行递归查询。本文对基本的使用方法进行示例，并给出了一个实际的应用场景：用户邀请记录查询</p>
+<span id="more"></span>
+
+
+<h2 id="with-CTE示例"><a href="#with-CTE示例" class="headerlink" title="with CTE示例"></a>with CTE示例</h2><p>with基本语法为：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">WITH</span> cte_name <span class="keyword">AS</span> (</span><br><span class="line">    <span class="keyword">SELECT</span> ...</span><br><span class="line">)</span><br><span class="line"><span class="keyword">SELECT</span> <span class="operator">*</span> <span class="keyword">FROM</span> cte_name;</span><br></pre></td></tr></table></figure>
+
+<p>如下，使用with定义了t1这一表达式，可以多次使用：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">WITH</span> t1 <span class="keyword">AS</span> ( <span class="keyword">SELECT</span> <span class="string">&#x27;matian&#x27;</span> <span class="keyword">AS</span> `name` )</span><br><span class="line"><span class="keyword">SELECT</span></span><br><span class="line">tb1.`name` <span class="keyword">as</span> n1,  tb2.`name` <span class="keyword">as</span> n2</span><br><span class="line"><span class="keyword">FROM</span></span><br><span class="line">	t1 <span class="keyword">as</span> tb1, t1 <span class="keyword">as</span> tb2</span><br></pre></td></tr></table></figure>
+<p>输出为：</p>
+<table>
+<thead>
+<tr>
+<th>n1</th>
+<th>n2</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>matian</td>
+<td>matian</td>
+</tr>
+</tbody></table>
+<p>也可使用with定义多个表达式，或者在嵌套子查询中继续使用with定义表达式，如下：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">WITH</span> t1 <span class="keyword">AS</span> ( <span class="keyword">SELECT</span> <span class="string">&#x27;matian&#x27;</span> <span class="keyword">AS</span> NAME ),</span><br><span class="line">t2 <span class="keyword">AS</span> ( <span class="keyword">SELECT</span> <span class="number">1</span> <span class="keyword">AS</span> id ) </span><br><span class="line"><span class="keyword">SELECT</span></span><br><span class="line"><span class="operator">*</span> </span><br><span class="line"><span class="keyword">FROM</span></span><br><span class="line">	t1,</span><br><span class="line">	t2</span><br></pre></td></tr></table></figure>
+
+<h2 id="with-CTE与视图view的区别"><a href="#with-CTE与视图view的区别" class="headerlink" title="with CTE与视图view的区别"></a>with CTE与视图view的区别</h2><ul>
+<li>with仅在当次查询中有效，执行结束即释放；视图是持久存在的，是会“物化”的，会将结果集缓存活存储</li>
+<li>with仅是构建一个表达式，视图部分情况下可以进行更新操作</li>
+</ul>
+<p>因此，with只是在单个查询中用于简化语句、临时替代重复子查询，视图适合高频使用的结果集的持久化</p>
+<h2 id="with-recursive递归查询"><a href="#with-recursive递归查询" class="headerlink" title="with recursive递归查询"></a>with recursive递归查询</h2><p>使用with recursive语法，相当于定义一个递归函数：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">WITH RECURSIVE cte_name (column_list) AS (</span><br><span class="line">    SELECT initial_query_result</span><br><span class="line">    UNION [ALL]</span><br><span class="line">    SELECT recursive_query</span><br><span class="line">    FROM cte_name</span><br><span class="line">    WHERE condition</span><br><span class="line">)</span><br><span class="line">SELECT * FROM cte_name;</span><br></pre></td></tr></table></figure>
+
+<p>initial_query_result定义初始值，recursive_query定义递归规则，condition定义递归条件，如：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">WITH</span> <span class="keyword">RECURSIVE</span> cte ( n ) <span class="keyword">AS</span> </span><br><span class="line">( <span class="keyword">SELECT</span> <span class="number">1</span> <span class="keyword">UNION</span> <span class="keyword">ALL</span> <span class="keyword">SELECT</span> n <span class="operator">+</span> <span class="number">1</span> <span class="keyword">FROM</span> cte <span class="keyword">WHERE</span> n <span class="operator">&lt;</span> <span class="number">5</span> ) </span><br><span class="line"><span class="keyword">SELECT</span></span><br><span class="line"><span class="operator">*</span> </span><br><span class="line"><span class="keyword">FROM</span></span><br><span class="line">	cte;</span><br></pre></td></tr></table></figure>
+<p>定义了cet(n)，并指定n的初始值为1，递归规则为n &#x3D; n+1，递归条件为 n &lt; 5，输出为：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">n</span><br><span class="line">-----</span><br><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td></tr></table></figure>
+
+<p>我们可以继续一个更有用的示例：实现一个字符串rightPad函数：rightpad ( str, append, n )，str为初始字符串，append为添加的字符串，n为append的重复次数。如下：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">WITH</span> <span class="keyword">recursive</span> rightpad ( str, append, n ) <span class="keyword">AS</span> (</span><br><span class="line">	<span class="keyword">SELECT</span></span><br><span class="line">		<span class="built_in">cast</span>(</span><br><span class="line">		<span class="string">&#x27;matian&#x27;</span> <span class="keyword">AS</span> <span class="type">CHAR</span> ( <span class="number">128</span> )) <span class="keyword">AS</span> str,</span><br><span class="line">		<span class="string">&#x27;8&#x27;</span> <span class="keyword">AS</span> append,</span><br><span class="line">		<span class="number">1</span> <span class="keyword">AS</span> n <span class="keyword">UNION</span> <span class="keyword">ALL</span></span><br><span class="line">	<span class="keyword">SELECT</span></span><br><span class="line">		concat( str, append ) <span class="keyword">AS</span> str,</span><br><span class="line">		append <span class="keyword">AS</span> append,</span><br><span class="line">		n <span class="operator">+</span> <span class="number">1</span> <span class="keyword">AS</span> n </span><br><span class="line">	<span class="keyword">FROM</span></span><br><span class="line">		rightpad </span><br><span class="line">	<span class="keyword">WHERE</span></span><br><span class="line">		n <span class="operator">&lt;</span> <span class="number">3</span> </span><br><span class="line">	)</span><br><span class="line"><span class="keyword">SELECT</span> <span class="operator">*</span> <span class="keyword">FROM</span> rightpad;</span><br></pre></td></tr></table></figure>
+<p>输出为：</p>
+<table>
+<thead>
+<tr>
+<th align="left">str</th>
+<th align="left">append</th>
+<th align="left">n</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">matian</td>
+<td align="left">8</td>
+<td align="left">1</td>
+</tr>
+<tr>
+<td align="left">matian8</td>
+<td align="left">8</td>
+<td align="left">2</td>
+</tr>
+<tr>
+<td align="left">matian88</td>
+<td align="left">8</td>
+<td align="left">3</td>
+</tr>
+</tbody></table>
+<p>需要留意的是，需要使用cast函数进行字符串类型的转换，否则将这一字符长度将受限而无法得到期望的结果</p>
+<p>说到递归，必然想起斐波那契数列，可以使用with recursive实现如下：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">WITH</span> <span class="keyword">recursive</span> fbnq ( n, n1, n2 ) <span class="keyword">AS</span> (</span><br><span class="line">	<span class="keyword">SELECT</span></span><br><span class="line">		<span class="number">1</span>,</span><br><span class="line">		<span class="number">0</span>,</span><br><span class="line">		<span class="number">1</span> <span class="keyword">UNION</span> <span class="keyword">ALL</span></span><br><span class="line">	<span class="keyword">SELECT</span></span><br><span class="line">		n1 <span class="keyword">AS</span> b,</span><br><span class="line">		n2 <span class="keyword">AS</span> n1,(</span><br><span class="line">			n1 <span class="operator">+</span> n2 </span><br><span class="line">		) <span class="keyword">AS</span> n2 </span><br><span class="line">	<span class="keyword">FROM</span></span><br><span class="line">		fbnq </span><br><span class="line">	<span class="keyword">WHERE</span></span><br><span class="line">		n <span class="operator">&lt;</span> <span class="number">5</span> </span><br><span class="line">	) </span><br><span class="line"><span class="keyword">SELECT</span></span><br><span class="line">	n2 </span><br><span class="line"><span class="keyword">FROM</span></span><br><span class="line">	fbnq</span><br></pre></td></tr></table></figure>
+
+<p>这一实现里我们经过精心的构造，用三个列分别作为n、n+1、n+2，如：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">1    0    1</span><br><span class="line">0    1    1</span><br><span class="line">1    1    2</span><br><span class="line">1    2    3</span><br><span class="line">2    3    5</span><br></pre></td></tr></table></figure>
+<p>规则为：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">n       n1           n2=n+n1</span><br><span class="line">n=n1    n1=n2        n2=n+n1</span><br></pre></td></tr></table></figure>
+
+<p>得到的结果为：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">n2</span><br><span class="line">---</span><br><span class="line">1</span><br><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">5</span><br><span class="line">8</span><br><span class="line">13</span><br></pre></td></tr></table></figure>
+
+
+<h2 id="应用示例–邀请记录树形数据查询"><a href="#应用示例–邀请记录树形数据查询" class="headerlink" title="应用示例–邀请记录树形数据查询"></a>应用示例–邀请记录树形数据查询</h2><p>在用户邀请的场景（chuan销？）中，用户邀请新用户，新用户邀请新新用户…一传十十传百，如何查询邀请记录呢？这里有这样几个基本的需求：</p>
+<ul>
+<li>查询某个用户的1层下线、2层下线…</li>
+<li>查询某个用户的上线</li>
+<li>查询某个用户所有下线用户的总数</li>
+</ul>
+<p>跳出来看，邀请记录其实是一个树形结构，对于树形结构的遍历，就不得不提递归</p>
+<p>首先模拟邀请记录表：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">-- ----------------------------</span></span><br><span class="line"><span class="comment">-- Table structure for user</span></span><br><span class="line"><span class="comment">-- ----------------------------</span></span><br><span class="line"><span class="keyword">DROP</span> <span class="keyword">TABLE</span> IF <span class="keyword">EXISTS</span> `<span class="keyword">user</span>`;</span><br><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> `<span class="keyword">user</span>`  (</span><br><span class="line">  `id` <span class="type">bigint</span>(<span class="number">20</span>) <span class="keyword">NOT</span> <span class="keyword">NULL</span> AUTO_INCREMENT COMMENT <span class="string">&#x27;主键&#x27;</span>,</span><br><span class="line">  `nickname` <span class="type">varchar</span>(<span class="number">100</span>) <span class="type">CHARACTER</span> <span class="keyword">SET</span> utf8mb4 <span class="keyword">COLLATE</span> utf8mb4_general_ci <span class="keyword">NULL</span> <span class="keyword">DEFAULT</span> <span class="keyword">NULL</span> COMMENT <span class="string">&#x27;昵称&#x27;</span>,</span><br><span class="line">  <span class="keyword">PRIMARY</span> KEY (`id`) <span class="keyword">USING</span> BTREE</span><br><span class="line">) ENGINE <span class="operator">=</span> InnoDB AUTO_INCREMENT <span class="operator">=</span> <span class="number">110</span> <span class="type">CHARACTER</span> <span class="keyword">SET</span> <span class="operator">=</span> utf8mb4 <span class="keyword">COLLATE</span> <span class="operator">=</span> utf8mb4_general_ci COMMENT <span class="operator">=</span> <span class="string">&#x27;用户表&#x27;</span> ROW_FORMAT <span class="operator">=</span> <span class="keyword">DYNAMIC</span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">-- ----------------------------</span></span><br><span class="line"><span class="comment">-- Records of user</span></span><br><span class="line"><span class="comment">-- ----------------------------</span></span><br><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> `<span class="keyword">user</span>` <span class="keyword">VALUES</span> (<span class="number">99</span>, <span class="string">&#x27;S&#x27;</span>);</span><br><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> `<span class="keyword">user</span>` <span class="keyword">VALUES</span> (<span class="number">100</span>, <span class="string">&#x27;A&#x27;</span>);</span><br><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> `<span class="keyword">user</span>` <span class="keyword">VALUES</span> (<span class="number">201</span>, <span class="string">&#x27;B&#x27;</span>);</span><br><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> `<span class="keyword">user</span>` <span class="keyword">VALUES</span> (<span class="number">202</span>, <span class="string">&#x27;C&#x27;</span>);</span><br><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> `<span class="keyword">user</span>` <span class="keyword">VALUES</span> (<span class="number">303</span>, <span class="string">&#x27;D&#x27;</span>);</span><br><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> `<span class="keyword">user</span>` <span class="keyword">VALUES</span> (<span class="number">304</span>, <span class="string">&#x27;E&#x27;</span>);</span><br><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> `<span class="keyword">user</span>` <span class="keyword">VALUES</span> (<span class="number">305</span>, <span class="string">&#x27;F&#x27;</span>);</span><br><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> `<span class="keyword">user</span>` <span class="keyword">VALUES</span> (<span class="number">306</span>, <span class="string">&#x27;G&#x27;</span>);</span><br><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> `<span class="keyword">user</span>` <span class="keyword">VALUES</span> (<span class="number">407</span>, <span class="string">&#x27;H&#x27;</span>);</span><br><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> `<span class="keyword">user</span>` <span class="keyword">VALUES</span> (<span class="number">408</span>, <span class="string">&#x27;I&#x27;</span>);</span><br><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> `<span class="keyword">user</span>` <span class="keyword">VALUES</span> (<span class="number">409</span>, <span class="string">&#x27;J&#x27;</span>);</span><br><span class="line"></span><br><span class="line"><span class="comment">-- ----------------------------</span></span><br><span class="line"><span class="comment">-- Table structure for user_invite_tree</span></span><br><span class="line"><span class="comment">-- ----------------------------</span></span><br><span class="line"><span class="keyword">DROP</span> <span class="keyword">TABLE</span> IF <span class="keyword">EXISTS</span> `user_invite_tree`;</span><br><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> `user_invite_tree`  (</span><br><span class="line">  `id` <span class="type">bigint</span>(<span class="number">20</span>) <span class="keyword">NOT</span> <span class="keyword">NULL</span> AUTO_INCREMENT COMMENT <span class="string">&#x27;主键&#x27;</span>,</span><br><span class="line">  `user_id` <span class="type">bigint</span>(<span class="number">20</span>) <span class="keyword">NULL</span> <span class="keyword">DEFAULT</span> <span class="keyword">NULL</span> COMMENT <span class="string">&#x27;用户id&#x27;</span>,</span><br><span class="line">  `invite_user_id` <span class="type">bigint</span>(<span class="number">20</span>) <span class="keyword">NULL</span> <span class="keyword">DEFAULT</span> <span class="keyword">NULL</span> COMMENT <span class="string">&#x27;推荐者id&#x27;</span>,</span><br><span class="line">  <span class="keyword">PRIMARY</span> KEY (`id`) <span class="keyword">USING</span> BTREE,</span><br><span class="line">  INDEX `user_id`(`user_id` <span class="keyword">ASC</span>) <span class="keyword">USING</span> BTREE,</span><br><span class="line">  INDEX `invite_user_id`(`invite_user_id` <span class="keyword">ASC</span>) <span class="keyword">USING</span> BTREE</span><br><span class="line">) ENGINE <span class="operator">=</span> InnoDB AUTO_INCREMENT <span class="operator">=</span> <span class="number">11</span> <span class="type">CHARACTER</span> <span class="keyword">SET</span> <span class="operator">=</span> utf8mb4 <span class="keyword">COLLATE</span> <span class="operator">=</span> utf8mb4_general_ci COMMENT <span class="operator">=</span> <span class="string">&#x27;推广记录表&#x27;</span> ROW_FORMAT <span class="operator">=</span> <span class="keyword">DYNAMIC</span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">-- ----------------------------</span></span><br><span class="line"><span class="comment">-- Records of user_invite_tree</span></span><br><span class="line"><span class="comment">-- ----------------------------</span></span><br><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> `user_invite_tree` <span class="keyword">VALUES</span> (<span class="number">1</span>, <span class="number">100</span>, <span class="number">99</span>);</span><br><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> `user_invite_tree` <span class="keyword">VALUES</span> (<span class="number">2</span>, <span class="number">201</span>, <span class="number">100</span>);</span><br><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> `user_invite_tree` <span class="keyword">VALUES</span> (<span class="number">3</span>, <span class="number">202</span>, <span class="number">100</span>);</span><br><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> `user_invite_tree` <span class="keyword">VALUES</span> (<span class="number">4</span>, <span class="number">303</span>, <span class="number">201</span>);</span><br><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> `user_invite_tree` <span class="keyword">VALUES</span> (<span class="number">5</span>, <span class="number">304</span>, <span class="number">201</span>);</span><br><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> `user_invite_tree` <span class="keyword">VALUES</span> (<span class="number">6</span>, <span class="number">305</span>, <span class="number">202</span>);</span><br><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> `user_invite_tree` <span class="keyword">VALUES</span> (<span class="number">7</span>, <span class="number">306</span>, <span class="number">202</span>);</span><br><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> `user_invite_tree` <span class="keyword">VALUES</span> (<span class="number">8</span>, <span class="number">407</span>, <span class="number">303</span>);</span><br><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> `user_invite_tree` <span class="keyword">VALUES</span> (<span class="number">9</span>, <span class="number">408</span>, <span class="number">303</span>);</span><br><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> `user_invite_tree` <span class="keyword">VALUES</span> (<span class="number">10</span>, <span class="number">409</span>, <span class="number">304</span>);</span><br></pre></td></tr></table></figure>
+
+<p>邀请关系为：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">S(99)-- A(100)---B(201)------D(303)----H(407)</span><br><span class="line">                 |           |         |             </span><br><span class="line">                 |           |         |</span><br><span class="line">                 |           |         I(408)</span><br><span class="line">                 |           |</span><br><span class="line">                 |           E(304)----J(409)</span><br><span class="line">                 |</span><br><span class="line">                 |</span><br><span class="line">                 C(202)------F(305)</span><br><span class="line">                             |</span><br><span class="line">                             |</span><br><span class="line">                             G(306)</span><br><span class="line">                             </span><br></pre></td></tr></table></figure>
+
+<h3 id="下钻–查询下线"><a href="#下钻–查询下线" class="headerlink" title="下钻–查询下线"></a>下钻–查询下线</h3><p>可以使用with递归查询S(99)的所有下线，我们很慢可以写出这样的sql：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">WITH</span> <span class="keyword">recursive</span> inivite_relation ( iid, uid ) <span class="keyword">AS</span> (</span><br><span class="line">	<span class="keyword">SELECT</span></span><br><span class="line">		<span class="number">0</span> <span class="keyword">AS</span> iid,</span><br><span class="line">		<span class="number">99</span> <span class="keyword">AS</span> uid <span class="keyword">UNION</span> <span class="keyword">ALL</span></span><br><span class="line">	<span class="keyword">SELECT</span></span><br><span class="line">		t.invite_user_id <span class="keyword">AS</span> iid,</span><br><span class="line">		t.user_id <span class="keyword">AS</span> uid </span><br><span class="line">	<span class="keyword">FROM</span></span><br><span class="line">		user_invite_tree t,</span><br><span class="line">		inivite_relation r </span><br><span class="line">	<span class="keyword">WHERE</span></span><br><span class="line">		t.invite_user_id <span class="operator">=</span> r.uid </span><br><span class="line">	) </span><br><span class="line"><span class="keyword">SELECT</span></span><br><span class="line">	<span class="operator">*</span> </span><br><span class="line"><span class="keyword">FROM</span></span><br><span class="line">	inivite_relation;</span><br></pre></td></tr></table></figure>
+
+<p>输出为：</p>
+<table>
+<thead>
+<tr>
+<th align="left">iid</th>
+<th align="left">uid</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">0</td>
+<td align="left">99</td>
+</tr>
+<tr>
+<td align="left">99</td>
+<td align="left">100</td>
+</tr>
+<tr>
+<td align="left">100</td>
+<td align="left">201</td>
+</tr>
+<tr>
+<td align="left">100</td>
+<td align="left">202</td>
+</tr>
+<tr>
+<td align="left">201</td>
+<td align="left">303</td>
+</tr>
+<tr>
+<td align="left">201</td>
+<td align="left">304</td>
+</tr>
+<tr>
+<td align="left">202</td>
+<td align="left">305</td>
+</tr>
+<tr>
+<td align="left">202</td>
+<td align="left">306</td>
+</tr>
+<tr>
+<td align="left">303</td>
+<td align="left">407</td>
+</tr>
+<tr>
+<td align="left">303</td>
+<td align="left">408</td>
+</tr>
+<tr>
+<td align="left">304</td>
+<td align="left">409</td>
+</tr>
+</tbody></table>
+<p>但是这一sql并不美：为了查询99的所有下线，我们在递归的初始条件中虚拟了一个0作为99的邀请人id，那么如果查询其他的，比如202的下线，难道要先查出他的邀请人手动填入作为初始条件？<br>其实邀请人表中就包含了邀请人id和用户id，所以只需要指定用户id，初始的邀请人id就可以查询出来：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">WITH</span> <span class="keyword">recursive</span> invite_relation ( iid, uid ) <span class="keyword">AS</span> (</span><br><span class="line">	<span class="keyword">SELECT</span></span><br><span class="line">		invite_user_id <span class="keyword">AS</span> iid,</span><br><span class="line">		user_id <span class="keyword">AS</span> uid </span><br><span class="line">	<span class="keyword">FROM</span></span><br><span class="line">		user_invite_tree </span><br><span class="line">	<span class="keyword">WHERE</span></span><br><span class="line">		invite_user_id <span class="operator">=</span> <span class="number">99</span> <span class="keyword">UNION</span> <span class="keyword">ALL</span></span><br><span class="line">	<span class="keyword">SELECT</span></span><br><span class="line">		t.invite_user_id <span class="keyword">AS</span> iid,</span><br><span class="line">		t.user_id <span class="keyword">AS</span> uid </span><br><span class="line">	<span class="keyword">FROM</span></span><br><span class="line">		user_invite_tree t,</span><br><span class="line">		invite_relation r </span><br><span class="line">	<span class="keyword">WHERE</span></span><br><span class="line">		t.invite_user_id <span class="operator">=</span> r.uid </span><br><span class="line">	) </span><br><span class="line"><span class="keyword">SELECT</span></span><br><span class="line">	<span class="operator">*</span> </span><br><span class="line"><span class="keyword">FROM</span></span><br><span class="line">	invite_relation;</span><br></pre></td></tr></table></figure>
+
+<p>输出结果相同</p>
+<p>但可能有过多的下级，我们只希望查询99的向下两级下线，那么需要增加一个层数变量限制递归层级：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">WITH</span> <span class="keyword">recursive</span> invite_relation ( iid, uid, layer ) <span class="keyword">AS</span> (</span><br><span class="line">	<span class="keyword">SELECT</span></span><br><span class="line">		invite_user_id <span class="keyword">AS</span> iid,</span><br><span class="line">		user_id <span class="keyword">AS</span> uid,</span><br><span class="line">		<span class="number">1</span> <span class="keyword">AS</span> layer </span><br><span class="line">	<span class="keyword">FROM</span></span><br><span class="line">		user_invite_tree </span><br><span class="line">	<span class="keyword">WHERE</span></span><br><span class="line">		invite_user_id <span class="operator">=</span> <span class="number">99</span> <span class="keyword">UNION</span> <span class="keyword">ALL</span></span><br><span class="line">	<span class="keyword">SELECT</span></span><br><span class="line">		t.invite_user_id <span class="keyword">AS</span> iid,</span><br><span class="line">		t.user_id <span class="keyword">AS</span> uid,</span><br><span class="line">		r.layer <span class="operator">+</span> <span class="number">1</span> <span class="keyword">AS</span> layer </span><br><span class="line">	<span class="keyword">FROM</span></span><br><span class="line">		user_invite_tree t,</span><br><span class="line">		invite_relation r </span><br><span class="line">	<span class="keyword">WHERE</span></span><br><span class="line">		t.invite_user_id <span class="operator">=</span> r.uid </span><br><span class="line">		<span class="keyword">AND</span> layer <span class="operator">&lt;</span> <span class="number">2</span> </span><br><span class="line">	) </span><br><span class="line"><span class="keyword">SELECT</span></span><br><span class="line">	<span class="operator">*</span> </span><br><span class="line"><span class="keyword">FROM</span></span><br><span class="line">	invite_relation;</span><br></pre></td></tr></table></figure>
+
+<p>输出为：</p>
+<table>
+<thead>
+<tr>
+<th align="left">iid</th>
+<th align="left">uid</th>
+<th align="left">layer</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">99</td>
+<td align="left">100</td>
+<td align="left">1</td>
+</tr>
+<tr>
+<td align="left">100</td>
+<td align="left">201</td>
+<td align="left">2</td>
+</tr>
+<tr>
+<td align="left">100</td>
+<td align="left">202</td>
+<td align="left">2</td>
+</tr>
+</tbody></table>
+<p>或者单独查询某一层，直接在最终的select中按layer筛选即可：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">WITH</span> <span class="keyword">recursive</span> invite_relation ( iid, uid, layer ) <span class="keyword">AS</span> (</span><br><span class="line">	<span class="keyword">SELECT</span></span><br><span class="line">		invite_user_id <span class="keyword">AS</span> iid,</span><br><span class="line">		user_id <span class="keyword">AS</span> uid,</span><br><span class="line">		<span class="number">1</span> <span class="keyword">AS</span> layer </span><br><span class="line">	<span class="keyword">FROM</span></span><br><span class="line">		user_invite_tree </span><br><span class="line">	<span class="keyword">WHERE</span></span><br><span class="line">		invite_user_id <span class="operator">=</span> <span class="number">99</span> <span class="keyword">UNION</span> <span class="keyword">ALL</span></span><br><span class="line">	<span class="keyword">SELECT</span></span><br><span class="line">		t.invite_user_id <span class="keyword">AS</span> iid,</span><br><span class="line">		t.user_id <span class="keyword">AS</span> uid,</span><br><span class="line">		r.layer <span class="operator">+</span> <span class="number">1</span> <span class="keyword">AS</span> layer </span><br><span class="line">	<span class="keyword">FROM</span></span><br><span class="line">		user_invite_tree t,</span><br><span class="line">		invite_relation r </span><br><span class="line">	<span class="keyword">WHERE</span></span><br><span class="line">		t.invite_user_id <span class="operator">=</span> r.uid </span><br><span class="line">		<span class="keyword">AND</span> layer <span class="operator">&lt;</span> <span class="number">2</span> </span><br><span class="line">	) </span><br><span class="line"><span class="keyword">SELECT</span></span><br><span class="line">	<span class="operator">*</span> </span><br><span class="line"><span class="keyword">FROM</span></span><br><span class="line">	invite_relation </span><br><span class="line"><span class="keyword">WHERE</span></span><br><span class="line">	layer <span class="operator">=</span> <span class="number">2</span></span><br></pre></td></tr></table></figure>
+
+<p>输出为：</p>
+<table>
+<thead>
+<tr>
+<th align="left">iid</th>
+<th align="left">uid</th>
+<th align="left">layer</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">100</td>
+<td align="left">201</td>
+<td align="left">2</td>
+</tr>
+<tr>
+<td align="left">100</td>
+<td align="left">202</td>
+<td align="left">2</td>
+</tr>
+</tbody></table>
+<p>同样的，对最终的select增加一个group和count聚合，也能轻松查询出每层的用户数量</p>
+<h3 id="上卷–查询上线"><a href="#上卷–查询上线" class="headerlink" title="上卷–查询上线"></a>上卷–查询上线</h3><p>可以下钻，自然可以上卷，如以下查询用户303的上线：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">WITH</span> <span class="keyword">recursive</span> invite_relation_rollup ( uid, iid ) <span class="keyword">AS</span> (</span><br><span class="line">	<span class="keyword">SELECT</span></span><br><span class="line">		user_id <span class="keyword">AS</span> uid,</span><br><span class="line">		invite_user_id <span class="keyword">AS</span> iid </span><br><span class="line">	<span class="keyword">FROM</span></span><br><span class="line">		user_invite_tree </span><br><span class="line">	<span class="keyword">WHERE</span></span><br><span class="line">		user_id <span class="operator">=</span> <span class="number">303</span> <span class="keyword">UNION</span> <span class="keyword">ALL</span></span><br><span class="line">	<span class="keyword">SELECT</span></span><br><span class="line">		user_id <span class="keyword">AS</span> uid,</span><br><span class="line">		invite_user_id <span class="keyword">AS</span> iid </span><br><span class="line">	<span class="keyword">FROM</span></span><br><span class="line">		user_invite_tree t,</span><br><span class="line">		invite_relation_rollup r </span><br><span class="line">	<span class="keyword">WHERE</span></span><br><span class="line">		t.user_id <span class="operator">=</span> r.iid </span><br><span class="line">	) </span><br><span class="line"><span class="keyword">SELECT</span></span><br><span class="line">	<span class="operator">*</span> </span><br><span class="line"><span class="keyword">FROM</span></span><br><span class="line">	invite_relation_rollup</span><br></pre></td></tr></table></figure>
+
+<p>输出为：</p>
+<table>
+<thead>
+<tr>
+<th align="left">iid</th>
+<th align="left">uid</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">303</td>
+<td align="left">201</td>
+</tr>
+<tr>
+<td align="left">201</td>
+<td align="left">100</td>
+</tr>
+<tr>
+<td align="left">100</td>
+<td align="left">99</td>
+</tr>
+</tbody></table>
+<p>同样的，我们可以增加一个layer变量来控制上卷层级：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">WITH</span> <span class="keyword">recursive</span> invite_relation_rollup ( uid, iid, layer ) <span class="keyword">AS</span> (</span><br><span class="line">	<span class="keyword">SELECT</span></span><br><span class="line">		user_id <span class="keyword">AS</span> uid,</span><br><span class="line">		invite_user_id <span class="keyword">AS</span> iid,</span><br><span class="line">		<span class="number">1</span> <span class="keyword">AS</span> layer </span><br><span class="line">	<span class="keyword">FROM</span></span><br><span class="line">		user_invite_tree </span><br><span class="line">	<span class="keyword">WHERE</span></span><br><span class="line">		user_id <span class="operator">=</span> <span class="number">303</span> <span class="keyword">UNION</span> <span class="keyword">ALL</span></span><br><span class="line">	<span class="keyword">SELECT</span></span><br><span class="line">		user_id <span class="keyword">AS</span> uid,</span><br><span class="line">		invite_user_id <span class="keyword">AS</span> iid,</span><br><span class="line">		r.layer <span class="operator">+</span> <span class="number">1</span> <span class="keyword">AS</span> layer </span><br><span class="line">	<span class="keyword">FROM</span></span><br><span class="line">		user_invite_tree t,</span><br><span class="line">		invite_relation_rollup r </span><br><span class="line">	<span class="keyword">WHERE</span></span><br><span class="line">		t.user_id <span class="operator">=</span> r.iid </span><br><span class="line">		<span class="keyword">AND</span> r.layer <span class="operator">&lt;</span> <span class="number">2</span> </span><br><span class="line">	) </span><br><span class="line"><span class="keyword">SELECT</span></span><br><span class="line">	<span class="operator">*</span> </span><br><span class="line"><span class="keyword">FROM</span></span><br><span class="line">	invite_relation_rollup</span><br></pre></td></tr></table></figure>
+
+<p>输出为：</p>
+<table>
+<thead>
+<tr>
+<th align="left">iid</th>
+<th align="left">uid</th>
+<th align="left">layer</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">303</td>
+<td align="left">201</td>
+<td align="left">1</td>
+</tr>
+<tr>
+<td align="left">201</td>
+<td align="left">100</td>
+<td align="left">2</td>
+</tr>
+</tbody></table>
+<p>同样的，对最终的select增加一个group和count聚合，也能轻松查询出每层的用户数量</p>
+<h3 id="查询下线人数"><a href="#查询下线人数" class="headerlink" title="查询下线人数"></a>查询下线人数</h3><p>如何查询某个用户的所有下线的数量？</p>
+<p>我们可以使用上文的递归查询出用户的下线，然后进行统计，但是如此使用递归存在递归层级和数据量的限制，效率堪忧，按道理会是指数级别的性能下降</p>
+<p>然后我们就想出了第二个方案：增加一个列，在记录新用户信息时，记录每个用户的邀请链路，如：</p>
+<table>
+<thead>
+<tr>
+<th align="left">user_id</th>
+<th align="left">invite_user_id</th>
+<th align="left">invite_chain</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">99</td>
+<td align="left">null</td>
+<td align="left">null</td>
+</tr>
+<tr>
+<td align="left">100</td>
+<td align="left">99</td>
+<td align="left">.99.</td>
+</tr>
+<tr>
+<td align="left">201</td>
+<td align="left">100</td>
+<td align="left">.99.100.</td>
+</tr>
+<tr>
+<td align="left">202</td>
+<td align="left">100</td>
+<td align="left">.99.100.</td>
+</tr>
+<tr>
+<td align="left">303</td>
+<td align="left">201</td>
+<td align="left">.99.100.</td>
+</tr>
+<tr>
+<td align="left">304</td>
+<td align="left">201</td>
+<td align="left">.99.100.</td>
+</tr>
+<tr>
+<td align="left">407</td>
+<td align="left">303</td>
+<td align="left">.99.100.303.</td>
+</tr>
+<tr>
+<td align="left">408</td>
+<td align="left">303</td>
+<td align="left">.99.100.303.</td>
+</tr>
+<tr>
+<td align="left">409</td>
+<td align="left">304</td>
+<td align="left">.99.100.304.</td>
+</tr>
+</tbody></table>
+<p>如上，第五行user_id &#x3D; 304的用户，invite_chain则表示他的上线依次是：99 -&gt; 邀请100 -&gt; 邀请201 -&gt; 邀请304</p>
+<p>那么查询用户99的下级，使用 invite_chain like ‘%.99.%’ 筛选后count即可；同样，查询100的下级那么使用 invite_chain like ‘%.100.%’ 筛选后count即可</p>
+<p>但是这样，在上文的示例中我们使用的id是小的数字来做Demo，而实际的user_id使用雪花ID等的情况下，长度大得多，那么invite_chain字段会很大</p>
+<p>我们继续沿着这种思路考虑：每层的人数不会太多，毕竟微信好友数上限也才几百，pdd砍一刀死命拉也就能叫到十来人。那么我们对invite_chain字段的组成做一下修改：约定无邀请人的初始用户的invite_id &#x3D; 0；对invite_chain不再使用user_id进行拼接，为了减小用户标识的长度，我们对某个用户的直接下线的用户按次序分配一个递增的编号，使用这一层内编号来代替user_id（同时，这一方式下可以记录下每个用户的邀请次序）；在记录新用户信息时，统计邀请人的直接下线数量即可确定当前用户的次序编号，确定invite_chain</p>
+<p>比如：</p>
+<table>
+<thead>
+<tr>
+<th align="left">user_id</th>
+<th align="left">invite_user_id</th>
+<th align="left">invite_chain</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">99</td>
+<td align="left">null</td>
+<td align="left">.0.</td>
+</tr>
+<tr>
+<td align="left">99</td>
+<td align="left">null</td>
+<td align="left">.1.</td>
+</tr>
+<tr>
+<td align="left">100</td>
+<td align="left">99</td>
+<td align="left">.0.1.</td>
+</tr>
+<tr>
+<td align="left">101</td>
+<td align="left">98</td>
+<td align="left">.1.1.</td>
+</tr>
+<tr>
+<td align="left">201</td>
+<td align="left">100</td>
+<td align="left">.0.1.1.</td>
+</tr>
+<tr>
+<td align="left">202</td>
+<td align="left">100</td>
+<td align="left">.0.1.2.</td>
+</tr>
+<tr>
+<td align="left">203</td>
+<td align="left">100</td>
+<td align="left">.0.1.3.</td>
+</tr>
+<tr>
+<td align="left">204</td>
+<td align="left">101</td>
+<td align="left">.1.1.1.</td>
+</tr>
+<tr>
+<td align="left">303</td>
+<td align="left">201</td>
+<td align="left">.0.1.1.1.</td>
+</tr>
+<tr>
+<td align="left">304</td>
+<td align="left">201</td>
+<td align="left">.0.1.1.2.</td>
+</tr>
+<tr>
+<td align="left">407</td>
+<td align="left">303</td>
+<td align="left">.0.1.1.1.1.</td>
+</tr>
+<tr>
+<td align="left">408</td>
+<td align="left">303</td>
+<td align="left">.0.1.1.1.2.</td>
+</tr>
+<tr>
+<td align="left">409</td>
+<td align="left">304</td>
+<td align="left">.0.1.1.2.1.</td>
+</tr>
+</tbody></table>
+<p>如上例，我们要查询用户100的下线数量，那么使用 invite_chain like ‘.0.1.%’ 进行筛选后做一次count可以完成统计</p>
+<p>这样的实现与使用用户id进行拼接并无本质区别，主要是为了减小invite_chain的字段长度</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/mysql/" rel="tag"># mysql</a>
+              <a href="/tags/%E5%9C%BA%E6%99%AF%E7%A4%BA%E4%BE%8B/" rel="tag"># 场景示例</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/c7e143e.html" rel="prev" title="看Spring事务机制的实现">
+      <i class="fa fa-chevron-left"></i> 看Spring事务机制的实现
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/94439062.html" rel="next" title="java类加载器问题思考与简单模拟热部署">
+      java类加载器问题思考与简单模拟热部署 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#with-CTE%E7%A4%BA%E4%BE%8B"><span class="nav-number">1.</span> <span class="nav-text">with CTE示例</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#with-CTE%E4%B8%8E%E8%A7%86%E5%9B%BEview%E7%9A%84%E5%8C%BA%E5%88%AB"><span class="nav-number">2.</span> <span class="nav-text">with CTE与视图view的区别</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#with-recursive%E9%80%92%E5%BD%92%E6%9F%A5%E8%AF%A2"><span class="nav-number">3.</span> <span class="nav-text">with recursive递归查询</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%BA%94%E7%94%A8%E7%A4%BA%E4%BE%8B%E2%80%93%E9%82%80%E8%AF%B7%E8%AE%B0%E5%BD%95%E6%A0%91%E5%BD%A2%E6%95%B0%E6%8D%AE%E6%9F%A5%E8%AF%A2"><span class="nav-number">4.</span> <span class="nav-text">应用示例–邀请记录树形数据查询</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%8B%E9%92%BB%E2%80%93%E6%9F%A5%E8%AF%A2%E4%B8%8B%E7%BA%BF"><span class="nav-number">4.1.</span> <span class="nav-text">下钻–查询下线</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%8A%E5%8D%B7%E2%80%93%E6%9F%A5%E8%AF%A2%E4%B8%8A%E7%BA%BF"><span class="nav-number">4.2.</span> <span class="nav-text">上卷–查询上线</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9F%A5%E8%AF%A2%E4%B8%8B%E7%BA%BF%E4%BA%BA%E6%95%B0"><span class="nav-number">4.3.</span> <span class="nav-text">查询下线人数</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">马天</p>
+  <div class="site-description" itemprop="description">程序猿</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">31</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">11</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">15</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/matian2014" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;matian2014" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:matian1103@qq.com" title="E-Mail → mailto:matian1103@qq.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+  <div class="beian"><a href="https://beian.miit.gov.cn/" rel="noopener" target="_blank">陕ICP备2023001563号 </a>
+  </div>
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2023</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">马天</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>
