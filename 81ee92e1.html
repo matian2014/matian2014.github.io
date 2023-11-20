@@ -28,10 +28,10 @@
 <meta property="og:description" content="mysql8引入with语法，可将一个临时表作为本次查询生命周期内的公共表达式使用（Common Table Expressions，CTE），来简化复杂的嵌套查询，并可使用with recursive语法进行递归查询。本文对基本的使用方法进行示例，并给出了一个实际的应用场景：用户邀请记录查询">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2022-04-07T14:02:11.000Z">
-<meta property="article:modified_time" content="2023-11-20T00:40:09.889Z">
+<meta property="article:modified_time" content="2023-11-20T01:55:57.840Z">
 <meta property="article:author" content="马天">
-<meta property="article:tag" content="mysql">
 <meta property="article:tag" content="场景示例">
+<meta property="article:tag" content="mysql">
 <meta name="twitter:card" content="summary">
 
 <link rel="canonical" href="http://matian.connorma.cn/81ee92e1.html">
@@ -416,7 +416,7 @@
 </tr>
 </tbody></table>
 <p>同样的，对最终的select增加一个group和count聚合，也能轻松查询出每层的用户数量</p>
-<h3 id="查询上线"><a href="#查询上线" class="headerlink" title="查询上线"></a>查询上线</h3><p>可以下钻，自然可以上卷，如以下查询用户303的上线：</p>
+<h3 id="查询上线"><a href="#查询上线" class="headerlink" title="查询上线"></a>查询上线</h3><p>可以向下递归，自然可以向上递归，如以下查询用户303的上线：</p>
 <figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">WITH</span> <span class="keyword">recursive</span> invite_relation_rollup ( uid, iid ) <span class="keyword">AS</span> (</span><br><span class="line">	<span class="keyword">SELECT</span></span><br><span class="line">		user_id <span class="keyword">AS</span> uid,</span><br><span class="line">		invite_user_id <span class="keyword">AS</span> iid </span><br><span class="line">	<span class="keyword">FROM</span></span><br><span class="line">		user_invite_tree </span><br><span class="line">	<span class="keyword">WHERE</span></span><br><span class="line">		user_id <span class="operator">=</span> <span class="number">303</span> <span class="keyword">UNION</span> <span class="keyword">ALL</span></span><br><span class="line">	<span class="keyword">SELECT</span></span><br><span class="line">		user_id <span class="keyword">AS</span> uid,</span><br><span class="line">		invite_user_id <span class="keyword">AS</span> iid </span><br><span class="line">	<span class="keyword">FROM</span></span><br><span class="line">		user_invite_tree t,</span><br><span class="line">		invite_relation_rollup r </span><br><span class="line">	<span class="keyword">WHERE</span></span><br><span class="line">		t.user_id <span class="operator">=</span> r.iid </span><br><span class="line">	) </span><br><span class="line"><span class="keyword">SELECT</span></span><br><span class="line">	<span class="operator">*</span> </span><br><span class="line"><span class="keyword">FROM</span></span><br><span class="line">	invite_relation_rollup</span><br></pre></td></tr></table></figure>
 
 <p>输出为：</p>
@@ -440,7 +440,7 @@
 <td align="left">99</td>
 </tr>
 </tbody></table>
-<p>同样的，我们可以增加一个layer变量来控制上卷层级：</p>
+<p>同样的，我们可以增加一个layer变量来控制向上查询层级：</p>
 <figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">WITH</span> <span class="keyword">recursive</span> invite_relation_rollup ( uid, iid, layer ) <span class="keyword">AS</span> (</span><br><span class="line">	<span class="keyword">SELECT</span></span><br><span class="line">		user_id <span class="keyword">AS</span> uid,</span><br><span class="line">		invite_user_id <span class="keyword">AS</span> iid,</span><br><span class="line">		<span class="number">1</span> <span class="keyword">AS</span> layer </span><br><span class="line">	<span class="keyword">FROM</span></span><br><span class="line">		user_invite_tree </span><br><span class="line">	<span class="keyword">WHERE</span></span><br><span class="line">		user_id <span class="operator">=</span> <span class="number">303</span> <span class="keyword">UNION</span> <span class="keyword">ALL</span></span><br><span class="line">	<span class="keyword">SELECT</span></span><br><span class="line">		user_id <span class="keyword">AS</span> uid,</span><br><span class="line">		invite_user_id <span class="keyword">AS</span> iid,</span><br><span class="line">		r.layer <span class="operator">+</span> <span class="number">1</span> <span class="keyword">AS</span> layer </span><br><span class="line">	<span class="keyword">FROM</span></span><br><span class="line">		user_invite_tree t,</span><br><span class="line">		invite_relation_rollup r </span><br><span class="line">	<span class="keyword">WHERE</span></span><br><span class="line">		t.user_id <span class="operator">=</span> r.iid </span><br><span class="line">		<span class="keyword">AND</span> r.layer <span class="operator">&lt;</span> <span class="number">2</span> </span><br><span class="line">	) </span><br><span class="line"><span class="keyword">SELECT</span></span><br><span class="line">	<span class="operator">*</span> </span><br><span class="line"><span class="keyword">FROM</span></span><br><span class="line">	invite_relation_rollup</span><br></pre></td></tr></table></figure>
 
 <p>输出为：</p>
@@ -611,8 +611,8 @@
 
       <footer class="post-footer">
           <div class="post-tags">
-              <a href="/tags/mysql/" rel="tag"># mysql</a>
               <a href="/tags/%E5%9C%BA%E6%99%AF%E7%A4%BA%E4%BE%8B/" rel="tag"># 场景示例</a>
+              <a href="/tags/mysql/" rel="tag"># mysql</a>
           </div>
 
         
